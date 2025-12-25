@@ -1,10 +1,10 @@
 const mysql = require("mysql2/promise");
 
 const pool = mysql.createPool({
-  host: "feminiq.in",
-  user: "Admin_Feminiqshop",
-  password: "Feminiq416$",
-  database: "feminiq",
+  host: "mysql.railway.internal",
+  user: "root",
+  password: "XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz",
+  database: "railway",
   waitForConnections: true,
 });
 
