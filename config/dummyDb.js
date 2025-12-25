@@ -1,11 +1,13 @@
 const mysql = require("mysql2/promise");
 
 const pool = mysql.createPool({
-  host: "mysql.railway.internal",
+  host: "trolley.proxy.rlwy.net",
+  port: 39841,
   user: "root",
   password: "XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz",
   database: "railway",
   waitForConnections: true,
+  connectionLimit: 5,
 });
 
 // ✅ Function to check if the database is live

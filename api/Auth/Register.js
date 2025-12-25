@@ -7,34 +7,6 @@ const jwt = require("jsonwebtoken");
 router.post("/", async (req, res) => {
   const { email, password, fullname, name, dob, phone, gender } = req.body;
 
-  // Development bypass - DO NOT USE IN PRODUCTION
-  if (email === "leadsbydharan@gmail.com" && password === "Dharan1424#$$") {
-    const devPayload = {
-      userId: 9999,
-      email: "leadsbydharan@gmail.com"
-    };
-    const devToken = jwt.sign(devPayload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
-    });
-
-    return res.status(200).json({
-      status: "success",
-      message: "Development user authenticated",
-      token: devToken,
-      user: {
-        id: 9999,
-        unique_id: "FC9999",
-        fullname: "Development User",
-        email: "leadsbydharan@gmail.com",
-        dob: null,
-        mobile: null,
-        gender: null,
-        name: "Dev User",
-        created_at: new Date().toISOString()
-      }
-    });
-  }
-
   if (!email || !password || !fullname) {
     return res.status(400).json({
       status: "error",
@@ -112,5 +84,6 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Server error" });
   }
 });
+
 
 module.exports = router;
