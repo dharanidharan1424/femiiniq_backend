@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
   const { email, password, fullname, name, dob, phone, gender } = req.body;
 
   // Development bypass - DO NOT USE IN PRODUCTION
-  if (email === "leadsbydharan@gmail.com" && password === "dharan1424#$$") {
+  if (email === "leadsbydharan@gmail.com" && password === "Dharan1424#$$") {
     const devPayload = {
       userId: 9999,
       email: "leadsbydharan@gmail.com"
