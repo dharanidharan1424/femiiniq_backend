@@ -8,7 +8,7 @@ require("dotenv").config();
 const app = express();
 
 const corsOptions = {
-  origin: "http://localhost:8081", // frontend origin you trust
+  origin: "http://192.168.1.6:8081", // frontend origin you trust
   credentials: true, // allow cookies/credentials
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
