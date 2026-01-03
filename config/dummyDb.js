@@ -7,7 +7,11 @@ const pool = mysql.createPool({
   password: "XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz",//XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz
   database: "railway",
   waitForConnections: true,
-  connectionLimit: 5,
+  connectionLimit: 10,
+  queueLimit: 0,
+
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 });
 
 // ✅ Function to check if the database is live
