@@ -299,7 +299,7 @@ router.get("/user/:userId", async (req, res) => {
     conn = await pool.getConnection();
 
     await conn.execute(`
-      UPDATE demobookings
+      UPDATE bookings
       SET status = 'completed'
       WHERE status = 'upcoming'
         AND (
