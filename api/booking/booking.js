@@ -313,7 +313,7 @@ router.get("/user/:userId", async (req, res) => {
       SELECT d.*, s.image AS staff_image, s.mobile_image_url AS staff_mobile_image_url,
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
-      FROM demobookings d
+      FROM bookings d
       JOIN staffs s ON d.staff_id = s.id
       LEFT JOIN (
         SELECT r1.booking_id, r1.status, r1.reason, r1.requested_at
