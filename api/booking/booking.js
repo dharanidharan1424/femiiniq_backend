@@ -79,9 +79,10 @@ router.post("/", async (req, res) => {
       .status(400)
       .json({ status: "error", message: "Missing required fields" });
 
-  const conn = await pool.getConnection();
+
 
   try {
+    const conn = await pool.getConnection();
     // Verify user exists
     const [userRows] = await conn.execute("SELECT id FROM users WHERE id = ?", [
       user_id,
@@ -250,8 +251,9 @@ router.post("/", async (req, res) => {
 router.get("/:bookingCode", async (req, res) => {
   const { bookingCode } = req.params;
 
-  const conn = await pool.getConnection();
+
   try {
+    const conn = await pool.getConnection();
     const [rows] = await conn.execute(
       "SELECT * FROM demobookings WHERE booking_code = ?",
       [bookingCode]
@@ -291,13 +293,12 @@ router.get("/:bookingCode", async (req, res) => {
 // --- Get all bookings for a user with automatic status update ---
 router.get("/user/:userId", async (req, res) => {
   const { userId } = req.params;
-
-  const conn = await pool.getConnection();
+  let conn;
 
   try {
-    // Update booking statuses on-demand as before
-    await conn.execute(
-      `
+    conn = await pool.getConnection();
+
+    await conn.execute(`
       UPDATE demobookings
       SET status = 'completed'
       WHERE status = 'upcoming'
@@ -306,13 +307,9 @@ router.get("/user/:userId", async (req, res) => {
           OR (date = CURDATE() AND STR_TO_DATE(time, '%H:%i:%s') <= CURTIME())
         )
         AND user_id = ?;
-    `,
-      [userId]
-    );
+    `, [userId]);
 
-    // Fetch bookings with latest reschedule request status and reason from separate table
-    const [bookings] = await conn.execute(
-      `
+    const [bookings] = await conn.execute(`
       SELECT d.*, s.image AS staff_image, s.mobile_image_url AS staff_mobile_image_url,
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
@@ -325,63 +322,38 @@ router.get("/user/:userId", async (req, res) => {
           SELECT booking_id, MAX(requested_at) AS max_requested_at
           FROM reschedule_requests
           GROUP BY booking_id
-        ) r2 ON r1.booking_id = r2.booking_id AND r1.requested_at = r2.max_requested_at
-        WHERE r1.status IN ('pending', 'approved', 'rejected')
+        ) r2
+        ON r1.booking_id = r2.booking_id
+        AND r1.requested_at = r2.max_requested_at
       ) rr ON d.id = rr.booking_id
       WHERE d.user_id = ?
       ORDER BY d.date DESC, d.time DESC
-      `,
-      [userId]
-    );
+    `, [userId]);
 
-    conn.release();
-
-    // Parse JSON fields for each booking
-    const parseBookingFields = (b) => ({
+    const parsedBookings = bookings.map(b => ({
       ...b,
-      specialist:
-        typeof b.specialist === "string"
-          ? (() => {
-              try {
-                return JSON.parse(b.specialist);
-              } catch {
-                return b.specialist;
-              }
-            })()
-          : b.specialist,
-      booked_services:
-        typeof b.booked_services === "string"
-          ? (() => {
-              try {
-                return JSON.parse(b.booked_services);
-              } catch {
-                return [];
-              }
-            })()
-          : b.booked_services,
-      booked_packages:
-        typeof b.booked_packages === "string"
-          ? (() => {
-              try {
-                return JSON.parse(b.booked_packages);
-              } catch {
-                return [];
-              }
-            })()
-          : b.booked_packages,
+      specialist: safeParse(b.specialist, null),
+      booked_services: safeParse(b.booked_services, []),
+      booked_packages: safeParse(b.booked_packages, []),
+    }));
+
+    res.status(200).json({
+      status: "success",
+      bookings: parsedBookings
     });
 
-    const parsedBookings = bookings.map(parseBookingFields);
-
-    res.json({ status: "success", bookings: parsedBookings });
   } catch (error) {
-    conn.release();
     console.error("User bookings fetch error:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Failed to fetch user bookings" });
+    res.status(500).json({
+      status: "error",
+      bookings: [],
+      message: "Failed to fetch user bookings"
+    });
+  } finally {
+    if (conn) conn.release();
   }
 });
+
 
 // POST /booking/reschedule-request
 // Create a new reschedule request
@@ -394,8 +366,9 @@ router.post("/reschedule-request", async (req, res) => {
       .json({ status: "error", message: "Missing required fields" });
   }
 
-  const conn = await pool.getConnection();
+
   try {
+    const conn = await pool.getConnection();
     // Insert a new pending reschedule request
     await conn.execute(
       `INSERT INTO reschedule_requests (booking_id, requested_date, requested_time, reason, status, requested_at) VALUES (?, ?, ?, ?, 'pending', NOW())`,
@@ -475,8 +448,9 @@ router.post("/reschedule-cancel/:bookingId", async (req, res) => {
       .json({ status: "error", message: "Missing booking ID" });
   }
 
-  const conn = await pool.getConnection();
+
   try {
+    const conn = await pool.getConnection();
     // Mark latest pending reschedule request as cancelled for given booking
     await conn.execute(
       `UPDATE reschedule_requests SET status = 'cancelled', decision_reason = 'Cancelled by user', decision_at = NOW()
@@ -503,8 +477,9 @@ router.post("/reschedule-cancel/:bookingId", async (req, res) => {
 router.post("/cancel", async (req, res) => {
   const { booking_code } = req.body;
 
-  const conn = await pool.getConnection();
+
   try {
+    const conn = await pool.getConnection();
     // Update booking status to cancelled and disable reminders
     const [result] = await conn.execute(
       `UPDATE demobookings SET status = 'cancelled', reminder_enabled = 0 WHERE booking_code = ?`,
