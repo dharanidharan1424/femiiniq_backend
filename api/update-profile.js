@@ -44,9 +44,10 @@ router.post("/", authenticateToken, async (req, res) => {
 
   values.push(userId);
 
-  const connection = await pool.getConnection();
+
 
   try {
+    const connection = await pool.getConnection();
     await connection.beginTransaction();
 
     // Update users table
