@@ -119,7 +119,7 @@ router.post("/", async (req, res) => {
     const safeValue = (val) => (val === undefined ? null : val);
 
     const insertSql = `
-  INSERT INTO demobookings 
+  INSERT INTO bookings 
   (staff_id, staff_name, service_at, address, user_id, user_name, user_mobile,
    date, time, specialist, booked_services, booked_packages,total_price, notes, status, created_at, payment_id,payment_method ,couponcode
    )
