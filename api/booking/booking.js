@@ -79,10 +79,10 @@ router.post("/", async (req, res) => {
       .status(400)
       .json({ status: "error", message: "Missing required fields" });
 
-
+  let conn;
 
   try {
-    const conn = await pool.getConnection();
+    conn = await pool.getConnection();
     // Verify user exists
     const [userRows] = await conn.execute("SELECT id FROM users WHERE id = ?", [
       user_id,
@@ -152,7 +152,7 @@ router.post("/", async (req, res) => {
     const booking_code = `Bkg${String(insertedId).padStart(4, "0")}`;
     const receipt_id = `REC-${String(insertedId).padStart(9, "0")}`;
 
-    const updateSql = `UPDATE demobookings SET booking_code = ?, receipt_id = ? WHERE id = ?`;
+    const updateSql = `UPDATE bookings SET booking_code = ?, receipt_id = ? WHERE id = ?`;
     await conn.execute(updateSql, [booking_code, receipt_id, insertedId]);
 
     // Notification details
@@ -238,8 +238,8 @@ router.post("/", async (req, res) => {
       }
     }
   } catch (error) {
-    await conn.rollback();
-    conn.release();
+    if (conn) await conn.rollback();
+    if (conn) conn.release();
     console.error("Booking creation error:", error);
     res
       .status(500)
