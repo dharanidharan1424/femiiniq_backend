@@ -247,48 +247,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// --- Get booking details by booking_code ---
-router.get("/:bookingCode", async (req, res) => {
-  const { bookingCode } = req.params;
-
-
-  try {
-    const conn = await pool.getConnection();
-    const [rows] = await conn.execute(
-      "SELECT * FROM demobookings WHERE booking_code = ?",
-      [bookingCode]
-    );
-    conn.release();
-
-    if (rows.length === 0)
-      return res
-        .status(404)
-        .json({ status: "error", message: "Booking not found" });
-
-    const booking = rows[0];
-
-    booking.specialist =
-      typeof booking.specialist === "string"
-        ? JSON.parse(booking.specialist)
-        : booking.specialist;
-    booking.booked_services =
-      typeof booking.booked_services === "string"
-        ? JSON.parse(booking.booked_services)
-        : booking.booked_services;
-    booking.booked_packages =
-      typeof booking.booked_packages === "string"
-        ? JSON.parse(booking.booked_packages)
-        : booking.booked_packages;
-
-    res.json({ status: "success", booking });
-  } catch (error) {
-    conn.release();
-    console.error("Booking fetch error:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Failed to fetch booking" });
-  }
-});
 
 // --- Get all bookings for a user with automatic status update ---
 router.get("/user/:userId", async (req, res) => {
@@ -353,6 +311,51 @@ router.get("/user/:userId", async (req, res) => {
     if (conn) conn.release();
   }
 });
+
+// --- Get booking details by booking_code ---
+router.get("/:bookingCode", async (req, res) => {
+  const { bookingCode } = req.params;
+
+
+  try {
+    const conn = await pool.getConnection();
+    const [rows] = await conn.execute(
+      "SELECT * FROM demobookings WHERE booking_code = ?",
+      [bookingCode]
+    );
+    conn.release();
+
+    if (rows.length === 0)
+      return res
+        .status(404)
+        .json({ status: "error", message: "Booking not found" });
+
+    const booking = rows[0];
+
+    booking.specialist =
+      typeof booking.specialist === "string"
+        ? JSON.parse(booking.specialist)
+        : booking.specialist;
+    booking.booked_services =
+      typeof booking.booked_services === "string"
+        ? JSON.parse(booking.booked_services)
+        : booking.booked_services;
+    booking.booked_packages =
+      typeof booking.booked_packages === "string"
+        ? JSON.parse(booking.booked_packages)
+        : booking.booked_packages;
+
+    res.json({ status: "success", booking });
+  } catch (error) {
+    conn.release();
+    console.error("Booking fetch error:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Failed to fetch booking" });
+  }
+});
+
+
 
 
 // POST /booking/reschedule-request
