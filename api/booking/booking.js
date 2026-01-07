@@ -246,6 +246,13 @@ router.post("/", async (req, res) => {
       .json({ status: "error", message: "Failed to create booking" });
   }
 });
+function safeParse(value, fallback) {
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value;
+  } catch (e) {
+    return fallback;
+  }
+}
 
 
 // --- Get all bookings for a user with automatic status update ---
