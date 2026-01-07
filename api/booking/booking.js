@@ -119,7 +119,7 @@ router.post("/", async (req, res) => {
     const safeValue = (val) => (val === undefined ? null : val);
 
     const insertSql = `
-  INSERT INTO bookings 
+  INSERT INTO demobookings 
   (staff_id, staff_name, service_at, address, user_id, user_name, user_mobile,
    date, time, specialist, booked_services, booked_packages,total_price, notes, status, created_at, payment_id,payment_method ,couponcode
    )
@@ -152,7 +152,7 @@ router.post("/", async (req, res) => {
     const booking_code = `Bkg${String(insertedId).padStart(4, "0")}`;
     const receipt_id = `REC-${String(insertedId).padStart(9, "0")}`;
 
-    const updateSql = `UPDATE bookings SET booking_code = ?, receipt_id = ? WHERE id = ?`;
+    const updateSql = `UPDATE demobookings SET booking_code = ?, receipt_id = ? WHERE id = ?`;
     await conn.execute(updateSql, [booking_code, receipt_id, insertedId]);
 
     // Notification details
@@ -188,7 +188,7 @@ router.post("/", async (req, res) => {
 
     if (userEmail) {
       try {
-        const receiptUrl = `https://feminiq-backend.onrender.com/receipt/${receipt_id}`; // Adjust PORT and path accordingly
+        const receiptUrl = `https://femiiniq-backend.onrender.com/receipt/${receipt_id}`; // Adjust PORT and path accordingly
 
         const response = await axios.get(receiptUrl, {
           responseType: "arraybuffer",
