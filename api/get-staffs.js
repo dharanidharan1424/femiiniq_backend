@@ -5,7 +5,7 @@ const pool = require("../config/db.js");
 // Existing route for all staffs
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM staffs");
+    const [rows] = await pool.query("SELECT * FROM agents");
     res.status(200).json({ status: "success", data: rows });
   } catch (error) {
     console.error("DB query error:", error);
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const staffId = req.params.id;
   try {
-    const [rows] = await pool.query("SELECT * FROM staffs WHERE id = ?", [
+    const [rows] = await pool.query("SELECT * FROM agents WHERE id = ?", [
       staffId,
     ]);
     if (rows.length === 0) {
