@@ -100,7 +100,6 @@ router.post("/", async (req, res) => {
   const requiredFields = {
     agent_id,
     agent_name,
-    location,
     address,
     booking_date,
     booking_time,
@@ -122,6 +121,14 @@ router.post("/", async (req, res) => {
         received: requiredFields
       });
   }
+
+  // Log location value for debugging
+  console.log("📍 Location value:", {
+    location,
+    type: typeof location,
+    length: location?.length,
+    charCodes: location ? Array.from(location).map(c => c.charCodeAt(0)) : null
+  });
 
   let conn;
 
