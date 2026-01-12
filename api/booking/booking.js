@@ -246,32 +246,43 @@ router.post("/", async (req, res) => {
 
     console.log("✅ Booking verified in database with id:", nextId);
 
-    // Notification details
-    const formattedTime = formatTo12Hour(booking_time);
+    // Commit the booking transaction FIRST before notifications
+    await conn.commit();
+    console.log("✅ Booking transaction committed successfully");
 
+    // Notification details (do this AFTER commit so it doesn't cause rollback)
+    const formattedTime = formatTo12Hour(booking_time);
     const notifMessage = `💸 Payment Received! Your payment for booking (#${insertedId}) of ₹${totalprice} on ${booking_date} at ${formattedTime} is successful. The agent will now confirm this booking from their side. Thank you for choosing Feminiq!`;
     const notifType = "payment";
 
-    // Save notification to notification table
-    await conn.execute(
-      "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-      [user_id, notifMessage, notifType, 0, new Date()]
-    );
-
-    // Send push notification if token available
-    if (userPushToken) {
-      await sendBookingPushNotification(
-        userPushToken,
-        "Payment Successful 💸",
-        notifMessage,
-        { booking_id: insertedId, booking_date, booking_time, totalprice }
+    // Try to save notification (don't let this fail the booking)
+    try {
+      await conn.execute(
+        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+        [user_id, notifMessage, notifType, 0, new Date()]
       );
-    } else {
-      console.warn("No expo_push_token found for user, not sending push.");
+      console.log("✅ Notification saved");
+    } catch (notifError) {
+      console.error("⚠️ Failed to save notification (non-critical):", notifError.message);
     }
 
-    await conn.commit();
-    console.log("✅ Transaction committed successfully");
+    // Try to send push notification (don't let this fail the booking)
+    try {
+      if (userPushToken) {
+        await sendBookingPushNotification(
+          userPushToken,
+          "Payment Successful 💸",
+          notifMessage,
+          { booking_id: insertedId, booking_date, booking_time, totalprice }
+        );
+        console.log("✅ Push notification sent");
+      } else {
+        console.warn("No expo_push_token found for user, not sending push.");
+      }
+    } catch (pushError) {
+      console.error("⚠️ Failed to send push notification (non-critical):", pushError.message);
+    }
+
     conn.release();
 
     res.json({ status: "success", booking_id: insertedId, order_id });
