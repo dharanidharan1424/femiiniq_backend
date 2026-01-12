@@ -147,15 +147,16 @@ router.post("/", async (req, res) => {
 
     const userPushToken = usersRows[0].expo_push_token;
 
-    // Verify agent exists
-    const [agentRows] = await conn.execute(
-      "SELECT id FROM agents WHERE id = ? AND name = ?",
-      [agent_id, agent_name]
-    );
-    if (agentRows.length === 0)
-      return res
-        .status(400)
-        .json({ status: "error", message: "Agent not found or name mismatch" });
+    // Verify agent exists (optional - only if agent_id is a valid number)
+    if (agent_id && !isNaN(agent_id) && agent_name && agent_name !== "Unknown Staff") {
+      const [agentRows] = await conn.execute(
+        "SELECT id FROM agents WHERE id = ?",
+        [agent_id]
+      );
+      if (agentRows.length === 0) {
+        console.warn(`⚠️ Agent ID ${agent_id} not found in agents table, proceeding anyway`);
+      }
+    }
 
     await conn.beginTransaction();
 
