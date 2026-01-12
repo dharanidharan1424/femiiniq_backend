@@ -464,7 +464,7 @@ router.post("/reschedule-request", async (req, res) => {
 
     // Assume you know user_id associated with booking_id (fetch if needed)
     const [bookingRows] = await conn.execute(
-      "SELECT user_id FROM demobookings WHERE id = ?",
+      "SELECT user_id FROM bookings WHERE id = ?",
       [booking_id]
     );
     const userIdForNotif =
@@ -499,7 +499,7 @@ router.post("/reschedule-request", async (req, res) => {
         // If approved, update the original booking with new date and time
         if (isApproved) {
           await decisionConn.execute(
-            `UPDATE demobookings SET date = ?, time = ? WHERE id = ?`,
+            `UPDATE bookings SET booking_date = ?, booking_time = ? WHERE id = ?`,
             [requested_date, requested_time, booking_id]
           );
         }
@@ -510,14 +510,14 @@ router.post("/reschedule-request", async (req, res) => {
       }
     }, 10 * 60 * 1000); // 10 minutes delay
   } catch (error) {
-    conn.release();
+    if (conn) conn.release();
     console.error("Reschedule request error:", error);
     return res.status(500).json({
       status: "error",
       message: "Failed to submit reschedule request",
     });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 });
 
@@ -564,7 +564,7 @@ router.post("/cancel", async (req, res) => {
     const conn = await pool.getConnection();
     // Update booking status to cancelled and disable reminders
     const [result] = await conn.execute(
-      `UPDATE demobookings SET status = 'cancelled', reminder_enabled = 0 WHERE booking_code = ?`,
+      `UPDATE bookings SET status = 'cancelled', reminder_enabled = 0 WHERE order_id = ?`,
       [booking_code]
     );
 
@@ -577,8 +577,8 @@ router.post("/cancel", async (req, res) => {
 
     // Get user details and total price
     const [rows] = await conn.execute(
-      `SELECT d.user_id, d.user_name, d.date, d.time, d.total_price, u.expo_push_token 
-       FROM demobookings d JOIN users u ON d.user_id = u.id WHERE d.booking_code = ?`,
+      `SELECT d.user_id, u.name as user_name, d.booking_date, d.booking_time, d.totalprice, u.expo_push_token 
+       FROM bookings d JOIN users u ON d.user_id = u.id WHERE d.order_id = ?`,
       [booking_code]
     );
 
@@ -594,7 +594,7 @@ router.post("/cancel", async (req, res) => {
     // Calculate refund percent and amount based on time
     const now = new Date();
 
-    const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`);
     const msIn24Hours = 24 * 60 * 60 * 1000;
     let refundPercent = 100;
 
@@ -603,7 +603,7 @@ router.post("/cancel", async (req, res) => {
     }
 
     const refundAmount = Math.round(
-      (booking.total_price * refundPercent) / 100
+      (booking.totalprice * refundPercent) / 100
     );
 
     // Prepare notification message with refund info and timeline
