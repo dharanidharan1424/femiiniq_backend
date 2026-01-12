@@ -168,6 +168,15 @@ router.post("/", async (req, res) => {
     );
     const nextId = maxIdResult[0].next_id;
 
+    // Log database info for debugging
+    const [dbInfo] = await conn.execute("SELECT DATABASE() as db_name");
+    console.log("📊 Database info:", {
+      database: dbInfo[0].db_name,
+      nextId: nextId,
+      user_id: user_id,
+      agent_id: agent_id
+    });
+
     const insertSql = `
   INSERT INTO bookings 
   (id, order_id, payment_id, user_id, agent_id, agent_name, booking_date, booking_time, 
