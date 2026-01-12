@@ -321,6 +321,7 @@ function safeParse(value, fallback) {
 // --- Get all bookings for a user with automatic status update ---
 router.get("/user/:userId", async (req, res) => {
   const { userId } = req.params;
+  console.log("📋 Fetching bookings for user:", userId);
   let conn;
 
   try {
@@ -336,6 +337,8 @@ router.get("/user/:userId", async (req, res) => {
         )
         AND user_id = ?;
     `, [userId]);
+
+    console.log("📊 Executing bookings query for user:", userId);
 
     const [bookings] = await conn.execute(`
       SELECT b.*, s.image AS staff_image,
@@ -357,6 +360,15 @@ router.get("/user/:userId", async (req, res) => {
       WHERE b.user_id = ?
       ORDER BY b.booking_date DESC, b.booking_time DESC
     `, [userId]);
+
+    console.log(`✅ Found ${bookings.length} bookings for user ${userId}`);
+    if (bookings.length > 0) {
+      console.log("📝 First booking:", {
+        id: bookings[0].id,
+        booking_date: bookings[0].booking_date,
+        status: bookings[0].status
+      });
+    }
 
     const parsedBookings = bookings.map(b => ({
       ...b,
