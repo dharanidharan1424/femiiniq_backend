@@ -393,16 +393,18 @@ router.get("/user/:userId", async (req, res) => {
   }
 });
 
-// --- Get booking details by booking_code ---
+// --- Get booking details by order_id (booking_code) ---
 router.get("/:bookingCode", async (req, res) => {
   const { bookingCode } = req.params;
 
-
   try {
     const conn = await pool.getConnection();
+
+    // Changed query to search by order_id or id, as we might use either
+    // Also changed table to 'bookings' from 'demobookings'
     const [rows] = await conn.execute(
-      "SELECT * FROM bookings WHERE booking_code = ?",
-      [bookingCode]
+      "SELECT * FROM bookings WHERE order_id = ? OR id = ?",
+      [bookingCode, bookingCode]
     );
     conn.release();
 
@@ -413,26 +415,22 @@ router.get("/:bookingCode", async (req, res) => {
 
     const booking = rows[0];
 
-    booking.specialist =
-      typeof booking.specialist === "string"
-        ? JSON.parse(booking.specialist)
-        : booking.specialist;
-    booking.booked_services =
-      typeof booking.booked_services === "string"
-        ? JSON.parse(booking.booked_services)
-        : booking.booked_services;
-    booking.booked_packages =
-      typeof booking.booked_packages === "string"
-        ? JSON.parse(booking.booked_packages)
-        : booking.booked_packages;
+    // Parse JSON fields safely
+    booking.specialist = safeParse(booking.specialist, []);
+    booking.services = safeParse(booking.services, []); // Changed from booked_services
+    booking.packages = safeParse(booking.packages, []); // Changed from booked_packages
 
     res.json({ status: "success", booking });
   } catch (error) {
-    conn.release();
     console.error("Booking fetch error:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Failed to fetch booking" });
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+conn.release();
+console.error("Booking fetch error:", error);
+res
+  .status(500)
+  .json({ status: "error", message: "Failed to fetch booking" });
   }
 });
 
