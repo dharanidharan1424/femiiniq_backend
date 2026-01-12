@@ -228,6 +228,24 @@ router.post("/", async (req, res) => {
 
     const insertedId = nextId; // Use the manually generated ID
 
+    console.log("✅ INSERT executed, result:", {
+      affectedRows: result.affectedRows,
+      insertId: result.insertId,
+      nextId: nextId
+    });
+
+    // Verify the booking was actually inserted
+    const [verifyRows] = await conn.execute(
+      "SELECT id FROM bookings WHERE id = ?",
+      [nextId]
+    );
+
+    if (verifyRows.length === 0) {
+      throw new Error(`Booking INSERT failed - no row found with id ${nextId}`);
+    }
+
+    console.log("✅ Booking verified in database with id:", nextId);
+
     // Notification details
     const formattedTime = formatTo12Hour(booking_time);
 
@@ -253,11 +271,16 @@ router.post("/", async (req, res) => {
     }
 
     await conn.commit();
+    console.log("✅ Transaction committed successfully");
     conn.release();
 
     res.json({ status: "success", booking_id: insertedId, order_id });
   } catch (error) {
-    if (conn) await conn.rollback();
+    console.error("❌ Booking creation error:", error);
+    if (conn) {
+      await conn.rollback();
+      console.log("⚠️ Transaction rolled back");
+    }
     if (conn) conn.release();
     console.error("Booking creation error:", error);
     res
