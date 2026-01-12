@@ -169,8 +169,8 @@ router.post("/", async (req, res) => {
    reschedule_status, discountprice, coupon_discount, platformfee, totalprice, 
    finalprice, payment_method, payment_type, amount, personal_note, booking_status, 
    couponcode, artist_platform_fee, start_otp, complete_otp, is_started, 
-   is_completed, remaining_amount, payment_status, paid_amount, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+   is_completed, remaining_amount, payment_status, paid_amount, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `;
 
     const [result] = await conn.execute(insertSql, [
@@ -215,6 +215,7 @@ router.post("/", async (req, res) => {
       safeValue(payment_status || "paid"),
       safeValue(paid_amount || totalprice),
       new Date(),
+      new Date(), // updated_at
     ]);
 
     const insertedId = result.insertId;
