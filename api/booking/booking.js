@@ -49,24 +49,46 @@ async function sendBookingPushNotification(
 router.post("/", async (req, res) => {
   console.log("Booking request body:", req.body);
   const {
-    staff_id,
-    staff_name,
-    service_at,
-    address,
-    user_id,
-    user_name,
-    user_mobile,
-    user_email,
-    date,
-    time,
-    specialist,
-    booked_services,
-    booked_packages,
+    order_id,
     payment_id,
+    user_id,
+    agent_id,
+    agent_name,
+    booking_date,
+    booking_time,
+    staffname,
+    address,
+    location,
+    services,
+    category_id,
+    service_id,
+    image,
+    status,
+    paid_at,
+    note,
+    cancel_reason,
+    reschedule_date,
+    reschedule_reason,
+    reschedule_status,
+    discountprice,
+    coupon_discount,
+    platformfee,
+    totalprice,
+    finalprice,
     payment_method,
-    total_price,
-    notes,
-    coupon_code,
+    payment_type,
+    amount,
+    personal_note,
+    booking_status,
+    couponcode,
+    artist_platform_fee,
+    start_otp,
+    complete_otp,
+    is_started,
+    is_completed,
+    remaining_amount,
+    payment_status,
+    paid_amount,
   } = req.body;
 
   if (!user_id || user_id <= 0)
@@ -74,25 +96,39 @@ router.post("/", async (req, res) => {
       .status(400)
       .json({ status: "error", message: "Invalid user_id" });
 
-  if (!staff_id || !staff_name || !service_at || !address || !date || !time)
+  // Check required fields and log which ones are missing
+  const requiredFields = {
+    agent_id,
+    agent_name,
+    location,
+    address,
+    booking_date,
+    booking_time,
+  };
+
+  const missingFields = Object.entries(requiredFields)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingFields.length > 0) {
+    console.error("Missing required fields:", missingFields);
+    console.error("Received values:", requiredFields);
     return res
       .status(400)
-      .json({ status: "error", message: "Missing required fields" });
+      .json({
+        status: "error",
+        message: "Missing required fields",
+        missing: missingFields,
+        received: requiredFields
+      });
+  }
 
   let conn;
 
   try {
     conn = await pool.getConnection();
-    // Verify user exists
-    const [userRows] = await conn.execute("SELECT id FROM users WHERE id = ?", [
-      user_id,
-    ]);
-    if (userRows.length === 0)
-      return res
-        .status(400)
-        .json({ status: "error", message: "User not found" });
 
-    // -- Verify user exists and get expo_push_token --
+    // Verify user exists and get expo_push_token
     const [usersRows] = await conn.execute(
       "SELECT id, expo_push_token FROM users WHERE id = ?",
       [user_id]
@@ -104,76 +140,97 @@ router.post("/", async (req, res) => {
 
     const userPushToken = usersRows[0].expo_push_token;
 
-    // Verify staff exists with matching id and name
-    const [staffRows] = await conn.execute(
-      "SELECT id FROM staffs WHERE id = ? AND name = ?",
-      [staff_id, staff_name]
+    // Verify agent exists
+    const [agentRows] = await conn.execute(
+      "SELECT id FROM agents WHERE id = ? AND name = ?",
+      [agent_id, agent_name]
     );
-    if (staffRows.length === 0)
+    if (agentRows.length === 0)
       return res
         .status(400)
-        .json({ status: "error", message: "Staff not found or name mismatch" });
+        .json({ status: "error", message: "Agent not found or name mismatch" });
 
     await conn.beginTransaction();
 
     const safeValue = (val) => (val === undefined ? null : val);
 
     const insertSql = `
-  INSERT INTO demobookings 
-  (staff_id, staff_name, service_at, address, user_id, user_name, user_mobile,
-   date, time, specialist, booked_services, booked_packages,total_price, notes, status, created_at, payment_id,payment_method ,couponcode
-   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?,?);
+  INSERT INTO bookings 
+  (order_id, payment_id, user_id, agent_id, agent_name, booking_date, booking_time, 
+   staffname, address, location, services, category_id, service_id, image, 
+   status, paid_at, note, cancel_reason, reschedule_date, reschedule_reason, 
+   reschedule_status, discountprice, coupon_discount, platformfee, totalprice, 
+   finalprice, payment_method, payment_type, amount, personal_note, booking_status, 
+   couponcode, artist_platform_fee, start_otp, complete_otp, is_started, 
+   is_completed, remaining_amount, payment_status, paid_amount, created_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `;
 
     const [result] = await conn.execute(insertSql, [
-      safeValue(staff_id),
-      safeValue(staff_name),
-      safeValue(service_at),
-      safeValue(address),
-      safeValue(user_id),
-      safeValue(user_name),
-      safeValue(user_mobile),
-      safeValue(date),
-      safeValue(time),
-      JSON.stringify(specialist) || null,
-      JSON.stringify(booked_services) || null,
-      JSON.stringify(booked_packages) || null,
-      safeValue(total_price), // new
-      safeValue(notes),
-      "upcoming",
-      new Date(),
+      safeValue(order_id),
       safeValue(payment_id),
+      safeValue(user_id),
+      safeValue(agent_id),
+      safeValue(agent_name),
+      safeValue(booking_date),
+      safeValue(booking_time),
+      safeValue(staffname || agent_name),
+      safeValue(address),
+      safeValue(location),
+      typeof services === 'string' ? services : JSON.stringify(services) || null,
+      safeValue(category_id),
+      safeValue(service_id),
+      safeValue(image),
+      safeValue(status || "upcoming"),
+      safeValue(paid_at || new Date()),
+      safeValue(note),
+      safeValue(cancel_reason),
+      safeValue(reschedule_date),
+      safeValue(reschedule_reason),
+      safeValue(reschedule_status),
+      safeValue(discountprice || 0),
+      safeValue(coupon_discount || 0),
+      safeValue(platformfee || 0),
+      safeValue(totalprice),
+      safeValue(finalprice || totalprice),
       safeValue(payment_method),
-      safeValue(coupon_code),
+      safeValue(payment_type || "online"),
+      safeValue(amount || totalprice),
+      safeValue(personal_note),
+      safeValue(booking_status || "confirmed"),
+      safeValue(couponcode),
+      safeValue(artist_platform_fee || 0),
+      safeValue(start_otp),
+      safeValue(complete_otp),
+      safeValue(is_started || 0),
+      safeValue(is_completed || 0),
+      safeValue(remaining_amount || 0),
+      safeValue(payment_status || "paid"),
+      safeValue(paid_amount || totalprice),
+      new Date(),
     ]);
 
     const insertedId = result.insertId;
-    const booking_code = `Bkg${String(insertedId).padStart(4, "0")}`;
-    const receipt_id = `REC-${String(insertedId).padStart(9, "0")}`;
-
-    const updateSql = `UPDATE demobookings SET booking_code = ?, receipt_id = ? WHERE id = ?`;
-    await conn.execute(updateSql, [booking_code, receipt_id, insertedId]);
 
     // Notification details
-    const formattedTime = formatTo12Hour(time);
+    const formattedTime = formatTo12Hour(booking_time);
 
-    const notifMessage = `💸 Payment Received! Your payment for booking (${booking_code}) of ₹${total_price} on ${date} at ${formattedTime} is successful. The agent will now confirm this booking from their side. Thank you for choosing Feminiq!`;
+    const notifMessage = `💸 Payment Received! Your payment for booking (#${insertedId}) of ₹${totalprice} on ${booking_date} at ${formattedTime} is successful. The agent will now confirm this booking from their side. Thank you for choosing Feminiq!`;
     const notifType = "payment";
 
-    // 1. Save notification to notification table WITH TYPE
+    // Save notification to notification table
     await conn.execute(
       "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
       [user_id, notifMessage, notifType, 0, new Date()]
     );
 
-    // 2. Send push notification if token available
+    // Send push notification if token available
     if (userPushToken) {
       await sendBookingPushNotification(
         userPushToken,
         "Payment Successful 💸",
         notifMessage,
-        { booking_code, date, time, total_price }
+        { booking_id: insertedId, booking_date, booking_time, totalprice }
       );
     } else {
       console.warn("No expo_push_token found for user, not sending push.");
@@ -182,70 +239,17 @@ router.post("/", async (req, res) => {
     await conn.commit();
     conn.release();
 
-    res.json({ status: "success", booking_code, receipt_id });
-
-    const userEmail = user_email; // from req.body, ensure email is passed in request
-
-    if (userEmail) {
-      try {
-        const receiptUrl = `https://femiiniq-backend.onrender.com/receipt/${receipt_id}`; // Adjust PORT and path accordingly
-
-        const response = await axios.get(receiptUrl, {
-          responseType: "arraybuffer",
-        });
-
-        const pdfBuffer = response.data;
-        const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
-
-        const emailHtml = `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <img src="../../assets/logo.png" alt="Company Logo" style="max-width:150px; margin-bottom:20px;" />
-          <h2>Booking Confirmation - ${booking_code}</h2>
-          <p>Dear ${user_name},</p>
-          <p>Thank you for your booking with Feminiq. Please find your booking receipt attached.</p>
-          <p><strong>Booking Details:</strong></p>
-          <ul>
-            <li><strong>Booking Code:</strong> ${booking_code}</li>
-            <li><strong>Receipt ID:</strong> ${receipt_id}</li>
-            <li><strong>Service Date & Time:</strong> ${date} at ${time}</li>
-            <li><strong>Staff:</strong> ${staff_name}</li>
-            <li><strong>Location:</strong> ${service_at} - ${address}</li>
-            <li><strong>Total Price:</strong> ₹${total_price}</li>
-          </ul>
-          <p>We look forward to serving you!</p>
-          <p>Best regards,<br/>Feminiq Team</p>
-        </div>
-    `;
-
-        // Send email with attachment using Resend
-        await resend.emails.send({
-          from: "Feminiq <feminiq@resend.dev>",
-          to: userEmail,
-          subject: `Booking Confirmation - ${booking_code}`,
-          html: emailHtml,
-          attachments: [
-            {
-              filename: `${receipt_id}.pdf`,
-              content: pdfBase64,
-              encoding: "base64",
-              contentType: "application/pdf",
-            },
-          ],
-        });
-        console.log("Booking confirmation email sent to", userEmail);
-      } catch (emailErr) {
-        console.error("Error sending booking confirmation email:", emailErr);
-      }
-    }
+    res.json({ status: "success", booking_id: insertedId, order_id });
   } catch (error) {
     if (conn) await conn.rollback();
     if (conn) conn.release();
     console.error("Booking creation error:", error);
     res
       .status(500)
-      .json({ status: "error", message: "Failed to create booking" });
+      .json({ status: "error", message: "Failed to create booking", details: error.message });
   }
 });
+
 function safeParse(value, fallback) {
   try {
     return typeof value === "string" ? JSON.parse(value) : value;
@@ -279,7 +283,7 @@ router.get("/user/:userId", async (req, res) => {
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
       FROM demobookings d
-      JOIN staffs s ON d.staff_id = s.id
+      JOIN agents s ON d.staff_id = s.id
       LEFT JOIN (
         SELECT r1.booking_id, r1.status, r1.reason, r1.requested_at
         FROM reschedule_requests r1
