@@ -295,7 +295,7 @@ router.get("/user/:userId", async (req, res) => {
     `, [userId]);
 
     const [bookings] = await conn.execute(`
-      SELECT b.*, s.image AS staff_image, s.mobile_image_url AS staff_mobile_image_url,
+      SELECT b.*, s.image AS staff_image,
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
       FROM bookings b
@@ -346,7 +346,7 @@ router.get("/:bookingCode", async (req, res) => {
   try {
     const conn = await pool.getConnection();
     const [rows] = await conn.execute(
-      "SELECT * FROM demobookings WHERE booking_code = ?",
+      "SELECT * FROM bookings WHERE booking_code = ?",
       [bookingCode]
     );
     conn.release();
