@@ -322,7 +322,7 @@ router.get("/user/:userId", async (req, res) => {
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
       FROM bookings b
-      JOIN agents s ON b.agent_id = s.id
+      LEFT JOIN agents s ON b.agent_id = s.id
       LEFT JOIN (
         SELECT r1.booking_id, r1.status, r1.reason, r1.requested_at
         FROM reschedule_requests r1
