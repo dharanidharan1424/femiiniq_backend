@@ -161,19 +161,26 @@ router.post("/", async (req, res) => {
 
     const safeValue = (val) => (val === undefined ? null : val);
 
+    // Generate ID manually since the table doesn't have AUTO_INCREMENT
+    const [maxIdResult] = await conn.execute(
+      "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM bookings"
+    );
+    const nextId = maxIdResult[0].next_id;
+
     const insertSql = `
   INSERT INTO bookings 
-  (order_id, payment_id, user_id, agent_id, agent_name, booking_date, booking_time, 
+  (id, order_id, payment_id, user_id, agent_id, agent_name, booking_date, booking_time, 
    staffname, address, location, services, category_id, service_id, image, 
    status, paid_at, note, cancel_reason, reschedule_date, reschedule_reason, 
    reschedule_status, discountprice, coupon_discount, platformfee, totalprice, 
    finalprice, payment_method, payment_type, amount, personal_note, booking_status, 
    couponcode, artist_platform_fee, start_otp, complete_otp, is_started, 
    is_completed, remaining_amount, payment_status, paid_amount, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `;
 
     const [result] = await conn.execute(insertSql, [
+      nextId, // Manually generated ID
       safeValue(order_id),
       safeValue(payment_id),
       safeValue(user_id),
@@ -218,7 +225,7 @@ router.post("/", async (req, res) => {
       new Date(), // updated_at
     ]);
 
-    const insertedId = result.insertId;
+    const insertedId = nextId; // Use the manually generated ID
 
     // Notification details
     const formattedTime = formatTo12Hour(booking_time);
