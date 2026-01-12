@@ -283,22 +283,22 @@ router.get("/user/:userId", async (req, res) => {
     conn = await pool.getConnection();
 
     await conn.execute(`
-      UPDATE demobookings
+      UPDATE bookings
       SET status = 'completed'
       WHERE status = 'upcoming'
         AND (
-          date < CURDATE()
-          OR (date = CURDATE() AND STR_TO_DATE(time, '%H:%i:%s') <= CURTIME())
+          booking_date < CURDATE()
+          OR (booking_date = CURDATE() AND STR_TO_DATE(booking_time, '%H:%i:%s') <= CURTIME())
         )
         AND user_id = ?;
     `, [userId]);
 
     const [bookings] = await conn.execute(`
-      SELECT d.*, s.image AS staff_image, s.mobile_image_url AS staff_mobile_image_url,
+      SELECT b.*, s.image AS staff_image, s.mobile_image_url AS staff_mobile_image_url,
         rr.status AS reschedule_status,
         rr.reason AS reschedule_reason
-      FROM demobookings d
-      JOIN agents s ON d.staff_id = s.id
+      FROM bookings b
+      JOIN agents s ON b.agent_id = s.id
       LEFT JOIN (
         SELECT r1.booking_id, r1.status, r1.reason, r1.requested_at
         FROM reschedule_requests r1
@@ -309,16 +309,15 @@ router.get("/user/:userId", async (req, res) => {
         ) r2
         ON r1.booking_id = r2.booking_id
         AND r1.requested_at = r2.max_requested_at
-      ) rr ON d.id = rr.booking_id
-      WHERE d.user_id = ?
-      ORDER BY d.date DESC, d.time DESC
+      ) rr ON b.id = rr.booking_id
+      WHERE b.user_id = ?
+      ORDER BY b.booking_date DESC, b.booking_time DESC
     `, [userId]);
 
     const parsedBookings = bookings.map(b => ({
       ...b,
-      specialist: safeParse(b.specialist, null),
-      booked_services: safeParse(b.booked_services, []),
-      booked_packages: safeParse(b.booked_packages, []),
+      // Parse services JSON field
+      services: safeParse(b.services, []),
     }));
 
     res.status(200).json({
