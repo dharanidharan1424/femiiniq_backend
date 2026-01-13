@@ -205,7 +205,7 @@ router.post("/", async (req, res) => {
       safeValue(category_id),
       safeValue(service_id),
       safeValue(image),
-      safeValue(status || "upcoming"),
+      safeValue(status || "Upcoming"), // Changed to Title Case to match frontend filter
       safeValue(paid_at || new Date()),
       safeValue(note),
       safeValue(cancel_reason),
@@ -426,13 +426,7 @@ router.get("/:bookingCode", async (req, res) => {
     res.status(500).json({ status: "error", message: "Server error" });
   }
 });
-conn.release();
-console.error("Booking fetch error:", error);
-res
-  .status(500)
-  .json({ status: "error", message: "Failed to fetch booking" });
-  }
-});
+
 
 
 
