@@ -605,65 +605,64 @@ router.post("/cancel", async (req, res) => {
     const refundAmount = Math.round(
       (booking.totalprice * refundPercent) / 100
     );
+
+    // Prepare notification message with refund info and timeline
+    const bookingDateFormatted = new Date(booking.date).toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }
     );
 
-// Prepare notification message with refund info and timeline
-const bookingDateFormatted = new Date(booking.date).toLocaleDateString(
-  "en-IN",
-  {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }
-);
+    const formattedTime = formatTo12Hour(booking.time);
+    let cancelMessage = `❌ Hi ${booking.user_name}, your booking (${booking_code}) scheduled for ${bookingDateFormatted} at ${formattedTime} has been cancelled. `;
 
-const formattedTime = formatTo12Hour(booking.time);
-let cancelMessage = `❌ Hi ${booking.user_name}, your booking (${booking_code}) scheduled for ${bookingDateFormatted} at ${formattedTime} has been cancelled. `;
+    if (refundPercent === 80) {
+      cancelMessage += `According to the policy, only 80% refund will be processed as the booking time is within 24 hours. You will receive ₹${refundAmount}. `;
+    } else {
+      cancelMessage += `You will receive a full refund of ₹${refundAmount}. `;
+    }
 
-if (refundPercent === 80) {
-  cancelMessage += `According to the policy, only 80% refund will be processed as the booking time is within 24 hours. You will receive ₹${refundAmount}. `;
-} else {
-  cancelMessage += `You will receive a full refund of ₹${refundAmount}. `;
-}
+    cancelMessage += `The refund will be processed within 3-5 business days.`;
 
-cancelMessage += `The refund will be processed within 3-5 business days.`;
+    // Insert notification in DB
+    try {
+      await conn.execute(
+        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+        [booking.user_id, cancelMessage, "cancel", 0, new Date()]
+      );
+    } catch (notifErr) {
+      console.error("Notification insert failed:", notifErr);
+    }
 
-// Insert notification in DB
-try {
-  await conn.execute(
-    "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-    [booking.user_id, cancelMessage, "cancel", 0, new Date()]
-  );
-} catch (notifErr) {
-  console.error("Notification insert failed:", notifErr);
-}
+    // Send push notification
+    if (booking.expo_push_token) {
+      await sendBookingPushNotification(
+        booking.expo_push_token,
+        "Booking Cancelled ❌",
+        cancelMessage,
+        { booking_code, date: booking.date, time: formattedTime, refundAmount }
+      );
+    }
 
-// Send push notification
-if (booking.expo_push_token) {
-  await sendBookingPushNotification(
-    booking.expo_push_token,
-    "Booking Cancelled ❌",
-    cancelMessage,
-    { booking_code, date: booking.date, time: formattedTime, refundAmount }
-  );
-}
+    conn.release();
 
-conn.release();
-
-res.json({
-  status: "success",
-  message:
-    "Booking cancelled, reminders disabled, notification and refund info sent",
-  refundPercent,
-  refundAmount,
-  refundTimeline: "3-5 business days",
-});
+    res.json({
+      status: "success",
+      message:
+        "Booking cancelled, reminders disabled, notification and refund info sent",
+      refundPercent,
+      refundAmount,
+      refundTimeline: "3-5 business days",
+    });
   } catch (error) {
-  conn.release();
-  console.error("Cancel booking error:", error);
-  res
-    .status(500)
-    .json({ status: "error", message: "Failed to cancel booking" });
-}
+    conn.release();
+    console.error("Cancel booking error:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Failed to cancel booking" });
+  }
 });
 module.exports = router;
