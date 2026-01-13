@@ -554,11 +554,13 @@ router.post("/cancel", async (req, res) => {
   const { booking_code } = req.body;
 
 
+  let conn;
   try {
-    const conn = await pool.getConnection();
-    // Update booking status to cancelled and disable reminders
+    conn = await pool.getConnection();
+    // Update booking status to cancelled
+    // Note: reminder_enabled column removed as it does not exist in bookings table
     const [result] = await conn.execute(
-      `UPDATE bookings SET status = 'cancelled', reminder_enabled = 0 WHERE order_id = ?`,
+      `UPDATE bookings SET status = 'cancelled' WHERE order_id = ?`,
       [booking_code]
     );
 
@@ -659,5 +661,4 @@ router.post("/cancel", async (req, res) => {
     if (conn) conn.release();
   }
 });
-module.exports = router;
 module.exports = router;
