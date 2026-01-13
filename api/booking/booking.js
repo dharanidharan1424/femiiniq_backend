@@ -659,31 +659,5 @@ router.post("/cancel", async (req, res) => {
     if (conn) conn.release();
   }
 });
-if (booking.expo_push_token) {
-  await sendBookingPushNotification(
-    booking.expo_push_token,
-    "Booking Cancelled ❌",
-    cancelMessage,
-    { booking_code, date: booking.date, time: formattedTime, refundAmount }
-  );
-}
-
-conn.release();
-
-res.json({
-  status: "success",
-  message:
-    "Booking cancelled, reminders disabled, notification and refund info sent",
-  refundPercent,
-  refundAmount,
-  refundTimeline: "3-5 business days",
-});
-  } catch (error) {
-  conn.release();
-  console.error("Cancel booking error:", error);
-  res
-    .status(500)
-    .json({ status: "error", message: "Failed to cancel booking" });
-}
-});
+module.exports = router;
 module.exports = router;
