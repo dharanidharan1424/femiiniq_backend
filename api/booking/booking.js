@@ -588,75 +588,82 @@ router.post("/cancel", async (req, res) => {
     // Calculate refund percent and amount based on time
     const now = new Date();
 
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`);
+    // Safely parse booking date
+    let dateStr = booking.booking_date;
+    if (booking.booking_date instanceof Date) {
+      dateStr = booking.booking_date.toISOString().split('T')[0];
+    }
+
+    const bookingDateTime = new Date(`${dateStr}T${booking.booking_time}`);
     const msIn24Hours = 24 * 60 * 60 * 1000;
     let refundPercent = 100;
 
-    if (bookingDateTime - now <= msIn24Hours && bookingDateTime - now > 0) {
+    if (!isNaN(bookingDateTime.getTime()) && bookingDateTime - now <= msIn24Hours && bookingDateTime - now > 0) {
       refundPercent = 80;
     }
 
     const refundAmount = Math.round(
       (booking.totalprice * refundPercent) / 100
     );
-
-    // Prepare notification message with refund info and timeline
-    const bookingDateFormatted = new Date(booking.date).toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }
     );
 
-    const formattedTime = formatTo12Hour(booking.time);
-    let cancelMessage = `❌ Hi ${booking.user_name}, your booking (${booking_code}) scheduled for ${bookingDateFormatted} at ${formattedTime} has been cancelled. `;
-
-    if (refundPercent === 80) {
-      cancelMessage += `According to the policy, only 80% refund will be processed as the booking time is within 24 hours. You will receive ₹${refundAmount}. `;
-    } else {
-      cancelMessage += `You will receive a full refund of ₹${refundAmount}. `;
-    }
-
-    cancelMessage += `The refund will be processed within 3-5 business days.`;
-
-    // Insert notification in DB
-    try {
-      await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [booking.user_id, cancelMessage, "cancel", 0, new Date()]
-      );
-    } catch (notifErr) {
-      console.error("Notification insert failed:", notifErr);
-    }
-
-    // Send push notification
-    if (booking.expo_push_token) {
-      await sendBookingPushNotification(
-        booking.expo_push_token,
-        "Booking Cancelled ❌",
-        cancelMessage,
-        { booking_code, date: booking.date, time: formattedTime, refundAmount }
-      );
-    }
-
-    conn.release();
-
-    res.json({
-      status: "success",
-      message:
-        "Booking cancelled, reminders disabled, notification and refund info sent",
-      refundPercent,
-      refundAmount,
-      refundTimeline: "3-5 business days",
-    });
-  } catch (error) {
-    conn.release();
-    console.error("Cancel booking error:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Failed to cancel booking" });
+// Prepare notification message with refund info and timeline
+const bookingDateFormatted = new Date(booking.date).toLocaleDateString(
+  "en-IN",
+  {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
   }
+);
+
+const formattedTime = formatTo12Hour(booking.time);
+let cancelMessage = `❌ Hi ${booking.user_name}, your booking (${booking_code}) scheduled for ${bookingDateFormatted} at ${formattedTime} has been cancelled. `;
+
+if (refundPercent === 80) {
+  cancelMessage += `According to the policy, only 80% refund will be processed as the booking time is within 24 hours. You will receive ₹${refundAmount}. `;
+} else {
+  cancelMessage += `You will receive a full refund of ₹${refundAmount}. `;
+}
+
+cancelMessage += `The refund will be processed within 3-5 business days.`;
+
+// Insert notification in DB
+try {
+  await conn.execute(
+    "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+    [booking.user_id, cancelMessage, "cancel", 0, new Date()]
+  );
+} catch (notifErr) {
+  console.error("Notification insert failed:", notifErr);
+}
+
+// Send push notification
+if (booking.expo_push_token) {
+  await sendBookingPushNotification(
+    booking.expo_push_token,
+    "Booking Cancelled ❌",
+    cancelMessage,
+    { booking_code, date: booking.date, time: formattedTime, refundAmount }
+  );
+}
+
+conn.release();
+
+res.json({
+  status: "success",
+  message:
+    "Booking cancelled, reminders disabled, notification and refund info sent",
+  refundPercent,
+  refundAmount,
+  refundTimeline: "3-5 business days",
+});
+  } catch (error) {
+  conn.release();
+  console.error("Cancel booking error:", error);
+  res
+    .status(500)
+    .json({ status: "error", message: "Failed to cancel booking" });
+}
 });
 module.exports = router;
