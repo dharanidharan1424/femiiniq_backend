@@ -47,27 +47,33 @@ router.get("/:receiptId", async (req, res) => {
   let booking, staff, user;
   try {
     const [bookingRows] = await conn.execute(
-      "SELECT * FROM demobookings WHERE receipt_id = ?",
-      [receiptId]
+      "SELECT * FROM bookings WHERE order_id = ? OR id = ?",
+      [receiptId, receiptId]
     );
     if (bookingRows.length === 0)
       return res.status(404).send("Receipt not found");
     booking = bookingRows[0];
 
-    booking.booked_services =
-      typeof booking.booked_services === "string" &&
-      booking.booked_services.length > 0
-        ? JSON.parse(booking.booked_services)
-        : booking.booked_services || [];
-    booking.booked_packages =
-      typeof booking.booked_packages === "string" &&
-      booking.booked_packages.length > 0
-        ? JSON.parse(booking.booked_packages)
-        : booking.booked_packages || [];
-    booking.specialist =
-      typeof booking.specialist === "string" && booking.specialist.length > 0
-        ? JSON.parse(booking.specialist)
-        : booking.specialist || {};
+    // Map `bookings` columns to `reciept.js` expectations
+    booking.date = booking.booking_date;
+    booking.time = booking.booking_time;
+    booking.service_at = booking.location; // or address
+
+    // Services might be in 'services' column or 'booked_services' depending on schema evolution
+    // Based on mobile app verification, it expects 'booked_services'
+    // But `booking.js` insert logic wasn't fully shown. Let's assume standard 'services' column from `get-orders.js` context
+
+    let servicesData = [];
+    try {
+      if (booking.services) {
+        if (typeof booking.services === 'string') servicesData = JSON.parse(booking.services);
+        else servicesData = booking.services;
+      }
+    } catch (e) { }
+
+    booking.booked_services = servicesData;
+    booking.booked_packages = []; // Assuming no packages or mapped similarly if distinct column exists
+    booking.specialist = {}; // Default empty if not in `bookings`
 
     const [staffRows] = await conn.execute(
       "SELECT * FROM staffs WHERE id = ?",

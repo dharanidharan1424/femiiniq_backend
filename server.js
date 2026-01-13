@@ -101,6 +101,8 @@ app.use("/partner/verify", agentVerifyRouter);
 app.use("/partner/reply", reviewReplyRouter);
 app.use("/partner/gallery", addGalleryRouter);
 app.use("/partner/bank", agentBankDetailsRouter);
+const dashboardRouter = require("./Partner/dashboard.js");
+app.use("/partner/dashboard", dashboardRouter);
 app.use("/partner/hide-profile", hideProfileRouter);
 
 app.use("/partner/chat", ChatBlockRouter);
