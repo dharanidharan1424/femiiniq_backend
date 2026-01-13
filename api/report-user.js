@@ -14,11 +14,15 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Generate manual ID (random 9-digit number)
+    const reportId = Math.floor(100000000 + Math.random() * 900000000);
+
     const [result] = await pool.query(
       `INSERT INTO user_reports (
-        user_id, user_name, report_type, subject, message, order_ref, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, user_name, report_type, subject, message, order_ref, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        reportId,
         user_id,
         user_name || "",
         report_type,
