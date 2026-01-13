@@ -607,7 +607,8 @@ router.post("/cancel", async (req, res) => {
     );
 
     // Prepare notification message with refund info and timeline
-    const bookingDateFormatted = new Date(booking.date).toLocaleDateString(
+    // Use dateStr which we safely parsed above (instead of undefined booking.date)
+    const bookingDateFormatted = new Date(dateStr).toLocaleDateString(
       "en-IN",
       {
         day: "2-digit",
@@ -616,7 +617,7 @@ router.post("/cancel", async (req, res) => {
       }
     );
 
-    const formattedTime = formatTo12Hour(booking.time);
+    const formattedTime = formatTo12Hour(booking.booking_time); // Changed from booking.time
     let cancelMessage = `❌ Hi ${booking.user_name}, your booking (${booking_code}) scheduled for ${bookingDateFormatted} at ${formattedTime} has been cancelled. `;
 
     if (refundPercent === 80) {
@@ -639,30 +640,50 @@ router.post("/cancel", async (req, res) => {
 
     // Send push notification
     if (booking.expo_push_token) {
-      await sendBookingPushNotification(
+      sendBookingPushNotification(
         booking.expo_push_token,
-        "Booking Cancelled ❌",
-        cancelMessage,
-        { booking_code, date: booking.date, time: formattedTime, refundAmount }
+        "Booking Cancelled",
+        cancelMessage
       );
     }
 
-    conn.release();
-
     res.json({
       status: "success",
-      message:
-        "Booking cancelled, reminders disabled, notification and refund info sent",
-      refundPercent,
+      message: "Booking cancelled successfully",
       refundAmount,
-      refundTimeline: "3-5 business days",
     });
   } catch (error) {
-    conn.release();
-    console.error("Cancel booking error:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Failed to cancel booking" });
+    console.error("Cancel API Error:", error);
+    res.status(500).json({ status: "error", message: "Server error: " + error.message });
+  } finally {
+    if (conn) conn.release();
   }
+});
+if (booking.expo_push_token) {
+  await sendBookingPushNotification(
+    booking.expo_push_token,
+    "Booking Cancelled ❌",
+    cancelMessage,
+    { booking_code, date: booking.date, time: formattedTime, refundAmount }
+  );
+}
+
+conn.release();
+
+res.json({
+  status: "success",
+  message:
+    "Booking cancelled, reminders disabled, notification and refund info sent",
+  refundPercent,
+  refundAmount,
+  refundTimeline: "3-5 business days",
+});
+  } catch (error) {
+  conn.release();
+  console.error("Cancel booking error:", error);
+  res
+    .status(500)
+    .json({ status: "error", message: "Failed to cancel booking" });
+}
 });
 module.exports = router;
