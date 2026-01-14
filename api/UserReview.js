@@ -60,7 +60,7 @@ router.post("/", async (req, res) => {
     // 4. Update agents table using numeric ID
     const updateAgentQuery = `
       UPDATE agents
-      SET rating = ?, reviews = ?
+      SET average_rating = ?, reviews = ?
       WHERE id = ?
     `;
     await pool.query(updateAgentQuery, [avg_rating, review_count, agentNumericId]);
@@ -117,7 +117,7 @@ router.put("/:id", async (req, res) => {
 
     // Update agents
     await pool.query(
-      "UPDATE agents SET rating = ?, reviews = ? WHERE id = ?",
+      "UPDATE agents SET average_rating = ?, reviews = ? WHERE agent_id = ?",
       [avg_rating, review_count, agentId]
     );
 
@@ -232,7 +232,7 @@ router.delete("/:id", async (req, res) => {
 
       const updateAgentQuery = `
         UPDATE agents
-        SET rating = ?, reviews = ?
+        SET average_rating = ?, reviews = ?
         WHERE id = ?
       `;
       await pool.query(updateAgentQuery, [avg_rating, review_count, agentId]);
