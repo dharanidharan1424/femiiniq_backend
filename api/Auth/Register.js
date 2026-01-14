@@ -45,8 +45,8 @@ router.post("/", async (req, res) => {
     );
     const userId = userResult.insertId;
 
-    // Generate unique ID
-    const uniqueId = `FC${String(userId).padStart(4, "0")}`;
+    // Generate unique ID with 10-digit padding
+    const uniqueId = `FC${String(userId).padStart(10, "0")}`;
 
     // Update user with unique_id and password hash
     await pool.query(

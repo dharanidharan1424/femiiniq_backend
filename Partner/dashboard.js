@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db.js");
+const db = require("../config/dummyDb2.js");
 
 router.post("/", async (req, res) => {
     const { agent_id, filter } = req.body;
