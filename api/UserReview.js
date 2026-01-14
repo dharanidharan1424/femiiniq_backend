@@ -19,6 +19,7 @@ router.post("/", async (req, res) => {
   try {
     // 1. Fetch agent info using numeric ID to get the FP... string ID and names
     const [agents] = await pool.query("SELECT agent_id, full_name, name FROM agents WHERE id = ?", [agentNumericId]);
+
     if (agents.length === 0) {
       return res.status(404).json({ status: "error", message: "Agent not found" });
     }
