@@ -24,7 +24,10 @@ router.post("/", async (req, res) => {
     }
 
     const dbAgentId = agents[0].agent_id; // String ID like FP000001
-    const agentName = agents[0].full_name || "Unknown Agent";
+    // The "agents" table has "name" (e.g. "Diya Nayar") and "full_name" (often same or null).
+    // The "reviews" table requires "agent_name" (NOT NULL).
+    // So we prioritize "name" which is likely the display name, or fallback to "full_name".
+    const agentName = agents[0].name || agents[0].full_name || "Unknown Vendor";
     const staffName = agents[0].name || "Unknown Shop";
 
     // 2. Insert Review using string agent_id
