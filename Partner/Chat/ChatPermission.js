@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../../config/dummyDb2.js"); // your MySQL pool connection
+const pool = require("../../config/db.js"); // your MySQL pool connection
 
 // GET check if chat is accepted by agent
 router.get("/is-accepted/:agentId/:userId", async (req, res) => {

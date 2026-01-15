@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/dummyDb2.js");
+const db = require("../config/db.js");
 
 router.post("/", async (req, res) => {
   const { agent_id } = req.body;
@@ -8,10 +8,12 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "agent_id is required" });
   }
   try {
+    console.log("Fetching bookings for agent_id:", agent_id);
     const [rows] = await db.execute(
       `SELECT * FROM bookings WHERE agent_id = ? ORDER BY booking_date DESC, booking_time DESC`,
       [agent_id]
     );
+    console.log("Found bookings count:", rows.length);
     if (!rows || rows.length === 0) {
       return res.json({
         bookings: [],
