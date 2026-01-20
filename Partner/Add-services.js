@@ -202,13 +202,18 @@ router.post("/package", async (req, res) => {
         .json({ status: "error", message: "Missing required fields." });
     }
 
+    // Generate ID manually
+    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM service_package");
+    const nextId = (maxIdResult[0].maxId || 0) + 1;
+
     const query = `
   INSERT INTO service_package
-  (category_id, name, price, description, agent_id, agent_name, staff_id, image, booked, original_price, duration, process_desc, services)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  (id, category_id, name, price, description, agent_id, agent_name, staff_id, image, booked, original_price, duration, process_desc, services)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
     const values = [
+      nextId,
       category_id,
       name,
       price,
