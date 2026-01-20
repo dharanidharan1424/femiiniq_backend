@@ -37,13 +37,18 @@ router.post("/service", async (req, res) => {
         .json({ status: "error", message: "Missing required fields." });
     }
 
+    // Generate ID manually since AUTO_INCREMENT is missing/failing
+    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM service_type");
+    const nextId = (maxIdResult[0].maxId || 0) + 1;
+
     const query = `
       INSERT INTO service_type
-      (category_id, name, image, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, category_id, name, image, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
+      nextId,
       category_id,
       name,
       image,

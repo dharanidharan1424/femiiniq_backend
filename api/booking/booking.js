@@ -89,7 +89,6 @@ router.post("/", async (req, res) => {
     remaining_amount,
     payment_status,
     paid_amount,
-    booking_status, // added for direct status set if needed
   } = req.body;
 
   if (!user_id || user_id <= 0)
