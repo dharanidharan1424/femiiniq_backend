@@ -835,7 +835,7 @@ router.post("/verify-start-otp", async (req, res) => {
       return res.status(400).json({ status: "error", message: "Invalid OTP" });
     }
 
-    await conn.execute("UPDATE bookings SET is_started = 1, status = 'In Progress' WHERE id = ?", [booking_id]);
+    await conn.execute("UPDATE bookings SET is_started = 1, status = 'Started' WHERE id = ?", [booking_id]);
     res.json({ status: "success", message: "Service Started" });
   } catch (e) {
     console.error(e);
