@@ -17,8 +17,9 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const staffId = req.params.id;
   try {
-    const [rows] = await pool.query("SELECT * FROM agents WHERE id = ?", [
+    const [rows] = await pool.query("SELECT * FROM agents WHERE id = ? OR agent_id = ?", [
       staffId,
+      staffId
     ]);
     if (rows.length === 0) {
       return res
