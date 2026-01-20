@@ -853,7 +853,7 @@ router.post("/pay-remaining", async (req, res) => {
   try {
     conn = await pool.getConnection();
     await conn.execute(
-      "UPDATE bookings SET paid_amount = paid_amount + ?, remaining_amount = 0, payment_status = 'fully_paid' WHERE id = ?",
+      "UPDATE bookings SET paid_amount = paid_amount + ?, remaining_amount = 0, payment_status = 'paid' WHERE id = ?",
       [amount_paid, booking_id]
     );
 
@@ -885,7 +885,7 @@ router.post("/verify-complete-otp", async (req, res) => {
     const booking = rows[0];
 
     // Security Check: Payment must be fully paid
-    if (booking.payment_status !== 'fully_paid' || booking.remaining_amount > 0) {
+    if (booking.payment_status !== 'paid' || booking.remaining_amount > 0) {
       return res.status(400).json({ status: "error", message: "Cannot complete service. Payment pending." });
     }
 
