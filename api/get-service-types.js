@@ -3,8 +3,17 @@ const router = express.Router();
 const pool = require("../config/db.js");
 
 router.get("/", async (req, res) => {
+  const { staff_id } = req.query;
   try {
-    const [rows] = await pool.query("SELECT * FROM service_types");
+    let query = "SELECT * FROM service_type";
+    const params = [];
+
+    if (staff_id) {
+      query += " WHERE staff_id = ?";
+      params.push(staff_id);
+    }
+
+    const [rows] = await pool.query(query, params);
     res.json({ data: rows });
   } catch (error) {
     console.error("DB query error:", error);
