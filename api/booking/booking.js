@@ -252,7 +252,7 @@ router.post("/", async (req, res) => {
       safeValue(is_started || 0),
       safeValue(is_completed || 0),
       safeValue(remaining_amount || 0),
-      safeValue(payment_status || "paid"), // Default to paid if not specified, but logic should send it
+      safeValue(payment_status === 'partial_paid' ? 'partial' : (payment_status || "paid")), // Default to paid if not specified, but logic should send it
       safeValue(paid_amount || totalprice),
       new Date(),
       new Date(), // updated_at
