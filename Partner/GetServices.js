@@ -21,7 +21,7 @@ router.get("/service/:agentId", async (req, res) => {
         .status(404)
         .json({ status: "error", message: "Agent not found" });
     }
-    res.json({ status: "success", services: results[0] });
+    res.json({ status: "success", services: results });
   } catch (error) {
     console.error("DB error:", error);
     res.status(500).json({ status: "error", message: "Database query failed" });

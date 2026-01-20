@@ -694,13 +694,15 @@ router.post("/confirm", async (req, res) => {
     conn = await pool.getConnection();
 
     // Generate secure 4-digit OTP
+    // Generate 4-digit OTP
     const startOtp = Math.floor(1000 + Math.random() * 9000).toString();
-    const bcrypt = require('bcrypt'); // ensure bcrypt is required
-    const hashedOtp = await bcrypt.hash(startOtp, 10);
+    // const bcrypt = require('bcrypt'); 
+    // const hashedOtp = await bcrypt.hash(startOtp, 10);
 
+    // Storing PLAIN OTP as per requirement to display it in User App
     await conn.execute(
       `UPDATE bookings SET booking_status = 'confirmed', start_otp = ?, status = 'Confirmed' WHERE id = ?`,
-      [hashedOtp, booking_id] // Store hashed OTP
+      [startOtp, booking_id]
     );
 
     // Notify user (In real app, send startOtp via SMS/Push to USER so they can give it to artist)
