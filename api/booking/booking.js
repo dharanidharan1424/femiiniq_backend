@@ -828,8 +828,10 @@ router.post("/verify-start-otp", async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ status: "error", message: "Booking not found" });
 
     const dbOtp = rows[0].start_otp;
-    // If I stored it plain:
-    if (dbOtp !== otp) {
+
+    console.log(`[Verify Start] Input: '${otp}', DB: '${dbOtp}'`);
+
+    if (!dbOtp || String(dbOtp).trim() !== String(otp).trim()) {
       return res.status(400).json({ status: "error", message: "Invalid OTP" });
     }
 
@@ -887,9 +889,11 @@ router.post("/verify-complete-otp", async (req, res) => {
       return res.status(400).json({ status: "error", message: "Cannot complete service. Payment pending." });
     }
 
-    const dbOtp = booking.complete_otp;
-    // Stored plain as per current strategy
-    if (dbOtp !== otp) {
+    const dbOtp = rows[0].complete_otp;
+
+    console.log(`[Verify Complete] Input: '${otp}', DB: '${dbOtp}'`);
+
+    if (!dbOtp || String(dbOtp).trim() !== String(otp).trim()) {
       return res.status(400).json({ status: "error", message: "Invalid OTP" });
     }
 
