@@ -872,7 +872,41 @@ router.post("/pay-remaining", async (req, res) => {
 
 // --- Verify Complete OTP ---
 router.post("/verify-complete-otp", async (req, res) => {
-  // ... similar logic setting is_completed=1, status='Completed'
+  const { booking_id, otp } = req.body;
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const [rows] = await conn.execute("SELECT complete_otp, payment_status, remaining_amount FROM bookings WHERE id = ?", [booking_id]);
+    if (rows.length === 0) return res.status(404).json({ status: "error", message: "Booking not found" });
+
+    const booking = rows[0];
+
+    // Security Check: Payment must be fully paid
+    if (booking.payment_status !== 'fully_paid' || booking.remaining_amount > 0) {
+      return res.status(400).json({ status: "error", message: "Cannot complete service. Payment pending." });
+    }
+
+    const dbOtp = booking.complete_otp;
+    // Stored plain as per current strategy
+    if (dbOtp !== otp) {
+      return res.status(400).json({ status: "error", message: "Invalid OTP" });
+    }
+
+    await conn.execute("UPDATE bookings SET is_completed = 1, status = 'Completed' WHERE id = ?", [booking_id]);
+
+    // Notify User
+    const [userRows] = await conn.execute("SELECT user_id FROM bookings WHERE id = ?", [booking_id]);
+    if (userRows.length > 0) {
+      await conn.execute("INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, 'booking_completed', 0, NOW())", [userRows[0].user_id, "✅ Service Completed! We hope you liked our service."]);
+    }
+
+    res.json({ status: "success", message: "Service Completed" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ status: "error" });
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 module.exports = router;
