@@ -3,28 +3,40 @@ const router = express.Router();
 const pool = require("../config/db.js");
 
 // Create a review (user → staff)
+// Create a review (user → staff)
 // POST: Create a review
 router.post("/", async (req, res) => {
   const { reviewer_id, reviewee_id, rating, comment } = req.body;
 
   const userId = reviewer_id;
-  const agentNumericId = reviewee_id; // Frontend passes numeric id
+  // IMPACT: reviewee_id comes from frontend as "FPxxxx" string. 
+  // We treat it as the agent_id string column, not the numeric PK.
+  const agentStringId = reviewee_id;
   const reviewText = comment;
 
-  if (!userId || !agentNumericId || !rating) {
+  if (!userId || !agentStringId || !rating) {
     return res
       .status(400)
       .json({ status: "error", message: "Missing required fields." });
   }
   try {
-    // 1. Fetch agent info using numeric ID to get the FP... string ID and names
-    const [agents] = await pool.query("SELECT agent_id, full_name, name FROM agents WHERE id = ?", [agentNumericId]);
+    // 1. Fetch agent info using STRING ID (agent_id) to get the numeric ID and names
+    // We need the numeric 'id' for the UPDATE query at the end.
+    const [agents] = await pool.query("SELECT id, agent_id, full_name, name FROM agents WHERE agent_id = ?", [agentStringId]);
 
     if (agents.length === 0) {
-      return res.status(404).json({ status: "error", message: "Agent not found" });
+      // Logic fallback: Maybe they DID send a number? Try lookup by numeric ID just in case.
+      // This supports both "FP001" and "55" inputs.
+      const [agentsByNum] = await pool.query("SELECT id, agent_id, full_name, name FROM agents WHERE id = ?", [agentStringId]);
+      if (agentsByNum.length === 0) {
+        return res.status(404).json({ status: "error", message: "Agent not found" });
+      }
+      agents.push(agentsByNum[0]);
     }
 
-    const dbAgentId = agents[0].agent_id; // String ID like FP000001
+    const dbAgentId = agents[0].agent_id; // String ID "FP..."
+    const agentNumericId = agents[0].id;  // Numeric ID (PK)
+
     // The "agents" table has "name" (e.g. "Diya Nayar") and "full_name" (often same or null).
     // The "reviews" table requires "agent_name" (NOT NULL).
     // So we prioritize "name" which is likely the display name, or fallback to "full_name".
@@ -57,7 +69,7 @@ router.post("/", async (req, res) => {
     const [statsRows] = await pool.query(statsSql, [dbAgentId]);
     const { review_count, avg_rating } = statsRows[0];
 
-    // 4. Update agents table using numeric ID
+    // 4. Update agents table using numeric ID (which we fetched above)
     const updateAgentQuery = `
       UPDATE agents
       SET average_rating = ?, reviews = ?
