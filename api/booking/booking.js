@@ -701,7 +701,7 @@ router.post("/confirm", async (req, res) => {
 
     // Storing PLAIN OTP as per requirement to display it in User App
     await conn.execute(
-      `UPDATE bookings SET booking_status = 'confirmed', start_otp = ?, status = 'Confirmed' WHERE id = ?`,
+      `UPDATE bookings SET booking_status = 'confirmed', start_otp = ? WHERE id = ?`,
       [startOtp, booking_id]
     );
 
