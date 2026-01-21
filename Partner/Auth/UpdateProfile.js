@@ -13,49 +13,21 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Agent ID is required" });
   }
 
-  // Helper to remove emojis for latin1 db compatibility
-  const removeEmojis = (str) => {
-    if (!str) return str;
-    return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-  };
-
-  // Determine Service Type (from payload or allow default logic)
-  const serviceType = agentProfile.serviceType || agentProfile.service_type;
-  const isStudio = serviceType === 'parlour';
-
-  // Dynamic Name Mapping
-  let dbName, dbFullName;
-  if (isStudio) {
-    // Studio: Owner Name -> 'name', Salon Name -> 'full_name'
-    dbName = removeEmojis(agentProfile.full_name || agentProfile.fullname);
-    dbFullName = removeEmojis(agentProfile.studio_name);
-  } else {
-    // Solo: Name -> 'full_name' (and 'name' usually acts as display name too)
-    dbFullName = removeEmojis(agentProfile.full_name || agentProfile.fullname);
-    dbName = removeEmojis(agentProfile.full_name || agentProfile.fullname);
-  }
-
   // Map frontend fields to database columns
   const fieldMap = {
-    // Dynamic Name Fields
-    full_name: dbFullName,
-    name: dbName,
-
-    // Description Mapping (User requested 'description' column)
-    description: removeEmojis(agentProfile.about_desc || agentProfile.about),
-
-    // Other fields
+    full_name: agentProfile.full_name || agentProfile.fullname,
     image: agentProfile.imageUrl,
+    about_desc: agentProfile.about_desc || agentProfile.about,
     status: agentProfile.status,
     dob: agentProfile.dob,
     email: agentProfile.email,
     mobile: agentProfile.mobile,
     gender: agentProfile.gender,
-    address: removeEmojis(agentProfile.address),
+    address: agentProfile.address,
     address_visibility: agentProfile.addressVisibility,
     country: agentProfile.country,
     service_id: agentProfile.serviceId,
-    service_type: agentProfile.serviceType, // store type string
+    service_type: agentProfile.serviceType,
     service_mode: agentProfile.service_mode,
     work_start: agentProfile.workingHourFrom,
     work_end: agentProfile.workingHourTo,
@@ -64,12 +36,12 @@ router.post("/", async (req, res) => {
     category: agentProfile.category,
     latitude: agentProfile.latitude,
     longitude: agentProfile.longitude,
-    state: removeEmojis(agentProfile.state),
-    city: removeEmojis(agentProfile.city),
-    address_line1: removeEmojis(agentProfile.addressLine1),
-    address_line2: removeEmojis(agentProfile.addressLine2),
-    address_line3: removeEmojis(agentProfile.addressLine3),
-    landmark: removeEmojis(agentProfile.landmark),
+    state: agentProfile.state,
+    city: agentProfile.city,
+    address_line1: agentProfile.addressLine1,
+    address_line2: agentProfile.addressLine2,
+    address_line3: agentProfile.addressLine3,
+    landmark: agentProfile.landmark,
     pincode: agentProfile.pincode,
     hide_profile: agentProfile.hideProfile,
   };

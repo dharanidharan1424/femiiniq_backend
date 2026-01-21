@@ -9,11 +9,9 @@ router.get("/", async (req, res) => {
     const params = [];
 
     if (staff_id) {
-      // Allow fetching by staff_id OR agent_id string OR agent_id resolved from agents table PK
-      query += ` WHERE staff_id = ? 
-                 OR agent_id = ? 
-                 OR agent_id = (SELECT agent_id FROM agents WHERE id = ?)`;
-      params.push(staff_id, staff_id, staff_id);
+      // Allow fetching by staff_id OR agent_id
+      query += " WHERE staff_id = ? OR agent_id = ?";
+      params.push(staff_id, staff_id);
     }
 
     const [rows] = await pool.query(query, params);
