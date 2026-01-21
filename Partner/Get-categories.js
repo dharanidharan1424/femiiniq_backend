@@ -4,7 +4,7 @@ const db = require("../config/dummyDb"); // Ensure this path matches your db con
 
 router.get("/", async (req, res) => {
     try {
-        const [categories] = await db.query("SELECT id, name FROM categories ORDER BY name ASC");
+        const [categories] = await db.query("SELECT id, name FROM service_categories ORDER BY name ASC");
 
         // Format for frontend if needed (e.g., label/value for dropdowns)
         const formatted = categories.map(cat => ({
