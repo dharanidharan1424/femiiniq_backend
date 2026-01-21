@@ -80,6 +80,9 @@ const agentBankDetailsRouter = require("./Partner/bank-details.js");
 const hideProfileRouter = require("./Partner/Auth/hide_profile.js");
 const ChatBlockRouter = require("./Partner/Chat/Blockeduser.js");
 const ChatPermissionRouter = require("./Partner/Chat/ChatPermission.js");
+const providerSettingsRouter = require("./Partner/provider-settings.js");
+const availabilitySlotsRouter = require("./Partner/availability-slots.js");
+const getAvailableSlotsRouter = require("./api/get-available-slots.js");
 
 app.use("/agent", getAgentsRouter);
 app.use("/partner/register", partnerRegisterRouter);
@@ -107,6 +110,11 @@ app.use("/partner/hide-profile", hideProfileRouter);
 
 app.use("/partner/chat", ChatBlockRouter);
 app.use("/partner/chat", ChatPermissionRouter);
+
+// New availability system routes
+app.use("/partner/provider-settings", providerSettingsRouter);
+app.use("/partner/availability", availabilitySlotsRouter);
+app.use("/api/booking/available-slots", getAvailableSlotsRouter);
 
 // <---------------------------------------------------------REAL DATA INTEGRATION----------------------------------------------------------->
 const bookingsRouter = require("./Real-data/Bookings/bookings.js");
