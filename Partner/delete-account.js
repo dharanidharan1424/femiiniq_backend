@@ -30,12 +30,17 @@ router.delete("/", async (req, res) => {
             });
         }
 
-        // 2. Log deletion reason if provided
+        // 2. Log deletion reason if provided (optional, won't fail if table doesn't exist)
         if (reason) {
-            await pool.query(
-                `INSERT INTO agent_deletions (agent_id, reason, deleted_at) VALUES (?, ?, NOW())`,
-                [agent_id, reason]
-            );
+            try {
+                await pool.query(
+                    `INSERT INTO agent_deletions (agent_id, reason, deleted_at) VALUES (?, ?, NOW())`,
+                    [agent_id, reason]
+                );
+            } catch (logError) {
+                console.log("Note: Could not log deletion reason (table may not exist):", logError.message);
+                // Continue with deletion even if logging fails
+            }
         }
 
         // 3. Delete related data first (foreign key constraints)
