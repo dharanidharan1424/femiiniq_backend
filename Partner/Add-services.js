@@ -2,6 +2,66 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/dummyDb.js");
 
+// POST /partner/add (Added for onboarding robustness)
+router.post("/", async (req, res) => {
+  console.log("📥 Onboarding Add Service Request Received:", req.body);
+  try {
+    const { agent_id, name, price, duration, category } = req.body;
+
+    if (!agent_id || !name || price === undefined || !duration) {
+      return res.status(400).json({ status: "error", message: "Missing required fields for service addition." });
+    }
+
+    // 1. Get agent name and shop_id
+    const [agents] = await db.query("SELECT name, id as shop_id FROM agents WHERE agent_id = ?", [agent_id]);
+    console.log("🔍 Found agents:", agents);
+    const agent = agents[0] || { name: 'Unknown', shop_id: 1 };
+
+    // 2. Get category_id from service_categories
+    const [categories] = await db.query("SELECT id FROM service_categories WHERE name = ?", [category || 'Hair']);
+    const category_id = categories.length > 0 ? categories[0].id : 1;
+
+    // 3. Get or fallback staff_id (for onboarding, we use the first available staff for this shop/agent)
+    // In this DB schema, staffs seem to be linked by shop_id
+    const [staffs] = await db.query("SELECT id FROM staffs WHERE shop_id = ? LIMIT 1", [agent.shop_id]);
+    const staff_id = staffs.length > 0 ? staffs[0].id : 1;
+
+    // Generate ID manually since AUTO_INCREMENT might be missing
+    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM service_type");
+    const nextId = (maxIdResult[0].maxId || 0) + 1;
+
+    const query = `
+      INSERT INTO service_type
+      (id, category_id, name, image, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      nextId,
+      category_id,
+      name,
+      'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png', // Default placeholder
+      price,
+      price, // original_price
+      staff_id,
+      duration.toString(),
+      'New service added during onboarding',
+      'Standard procedure',
+      agent_id,
+      agent.name
+    ];
+
+    console.log("📝 Executing Insert query with values:", values);
+    await db.query(query, values);
+    console.log("✅ Service added successfully to DB.");
+
+    return res.status(201).json({ status: "success", message: "Service added successfully" });
+  } catch (error) {
+    console.error("Onboarding Add Service Error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
 // POST /api/services
 router.post("/service", async (req, res) => {
   try {

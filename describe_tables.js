@@ -2,7 +2,7 @@ const pool = require('./config/db');
 
 async function describeTables() {
     try {
-        const tables = ['reviews', 'mobile_reviews', 'agents', 'users'];
+        const tables = ['reviews', 'mobile_reviews', 'agents', 'users', 'service_type'];
         for (const table of tables) {
             console.log(`\n--- Structure of table: ${table} ---`);
             try {
