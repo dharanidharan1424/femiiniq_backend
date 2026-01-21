@@ -22,13 +22,13 @@ router.post("/", async (req, res) => {
   // Map frontend fields to database columns
   const fieldMap = {
     full_name: removeEmojis(agentProfile.full_name || agentProfile.fullname),
+    name: removeEmojis(agentProfile.studio_name), // Map studio_name to 'name' column
     image: agentProfile.imageUrl,
     about_desc: removeEmojis(agentProfile.about_desc || agentProfile.about),
     status: agentProfile.status,
     dob: agentProfile.dob,
     email: agentProfile.email,
     mobile: agentProfile.mobile,
-    studio_name: removeEmojis(agentProfile.studio_name),
     gender: agentProfile.gender, // Keep gender as is, assuming strict values
     address: removeEmojis(agentProfile.address),
     address_visibility: agentProfile.addressVisibility,
