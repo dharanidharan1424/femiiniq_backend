@@ -4,7 +4,7 @@ const db = require("../../config/dummyDb.js");
 const dayjs = require("dayjs");
 
 router.post("/", async (req, res) => {
-  // console.log("Incoming Update Profile Request:", JSON.stringify(req.body, null, 2));
+  console.log("Incoming Update Profile Request Body:", JSON.stringify(req.body, null, 2));
   // Destructure expected fields directly from req.body.agentProfile
   const agentProfile = req.body.agentProfile || {};
   const agent_id = req.body.agent_id || agentProfile.agent_id;
@@ -13,17 +13,23 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Agent ID is required" });
   }
 
+  // Helper to remove emojis for latin1 db compatibility
+  const removeEmojis = (str) => {
+    if (!str) return str;
+    return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+  };
+
   // Map frontend fields to database columns
   const fieldMap = {
-    full_name: agentProfile.full_name || agentProfile.fullname,
+    full_name: removeEmojis(agentProfile.full_name || agentProfile.fullname),
     image: agentProfile.imageUrl,
-    about_desc: agentProfile.about_desc || agentProfile.about,
+    about_desc: removeEmojis(agentProfile.about_desc || agentProfile.about),
     status: agentProfile.status,
     dob: agentProfile.dob,
     email: agentProfile.email,
     mobile: agentProfile.mobile,
-    gender: agentProfile.gender,
-    address: agentProfile.address,
+    gender: agentProfile.gender, // Keep gender as is, assuming strict values
+    address: removeEmojis(agentProfile.address),
     address_visibility: agentProfile.addressVisibility,
     country: agentProfile.country,
     service_id: agentProfile.serviceId,
@@ -36,12 +42,12 @@ router.post("/", async (req, res) => {
     category: agentProfile.category,
     latitude: agentProfile.latitude,
     longitude: agentProfile.longitude,
-    state: agentProfile.state,
-    city: agentProfile.city,
-    address_line1: agentProfile.addressLine1,
-    address_line2: agentProfile.addressLine2,
-    address_line3: agentProfile.addressLine3,
-    landmark: agentProfile.landmark,
+    state: removeEmojis(agentProfile.state),
+    city: removeEmojis(agentProfile.city),
+    address_line1: removeEmojis(agentProfile.addressLine1),
+    address_line2: removeEmojis(agentProfile.addressLine2),
+    address_line3: removeEmojis(agentProfile.addressLine3),
+    landmark: removeEmojis(agentProfile.landmark),
     pincode: agentProfile.pincode,
     hide_profile: agentProfile.hideProfile,
   };
