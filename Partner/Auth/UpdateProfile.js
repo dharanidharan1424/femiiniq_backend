@@ -28,6 +28,7 @@ router.post("/", async (req, res) => {
     dob: agentProfile.dob,
     email: agentProfile.email,
     mobile: agentProfile.mobile,
+    studio_name: removeEmojis(agentProfile.studio_name),
     gender: agentProfile.gender, // Keep gender as is, assuming strict values
     address: removeEmojis(agentProfile.address),
     address_visibility: agentProfile.addressVisibility,
