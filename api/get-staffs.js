@@ -8,9 +8,10 @@ router.get("/", async (req, res) => {
     const [rows] = await pool.query(`
       SELECT *, 
       COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
-      COALESCE(NULLIF(studio_name, ''), NULLIF(full_name, ''), NULLIF(fullname, ''), name) AS name,
-      COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(area, ''), NULLIF(city, ''))) AS address
+      COALESCE(NULLIF(full_name, ''), name) AS name,
+      COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(address_line2, ''), NULLIF(city, ''))) AS address
       FROM agents
+      WHERE hide_profile = 'no'
     `);
     res.status(200).json({ status: "success", data: rows });
   } catch (error) {
@@ -33,9 +34,9 @@ router.get("/:id", async (req, res) => {
     const [rows] = await pool.query(`
       SELECT *, 
       COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
-      COALESCE(NULLIF(studio_name, ''), NULLIF(full_name, ''), NULLIF(fullname, ''), name) AS name,
-      COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(area, ''), NULLIF(city, ''))) AS address
-      FROM agents WHERE id = ? OR agent_id = ? OR id = ?`, [
+      COALESCE(NULLIF(full_name, ''), name) AS name,
+      COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(address_line2, ''), NULLIF(city, ''))) AS address
+      FROM agents WHERE (id = ? OR agent_id = ? OR id = ?) AND hide_profile = 'no'`, [
       numericId,
       agentIdStr,
       numericId
