@@ -96,25 +96,50 @@ router.post("/", async (req, res) => {
       .status(400)
       .json({ status: "error", message: "Invalid user_id" });
 
-  // --- [NEW] BLOCKING LOGIC: Check for pending payments ---
+  // --- [UPDATED] BLOCKING LOGIC: Check for incomplete bookings ---
   try {
     const connCheck = await pool.getConnection();
-    const [pendingRows] = await connCheck.execute(
-      `SELECT id, remaining_amount, payment_status FROM bookings 
-           WHERE user_id = ? AND (payment_status = 'partial_paid' OR remaining_amount > 0) AND status != 'cancelled' AND status != 'rejected'`,
+
+    // Check for ANY incomplete booking (not completed or cancelled)
+    const [activeBookings] = await connCheck.execute(
+      `SELECT id, status, is_completed, remaining_amount, payment_status, booking_date, order_id
+       FROM bookings 
+       WHERE user_id = ? 
+       AND status NOT IN ('Completed', 'completed', 'Cancelled', 'cancelled', 'Rejected', 'rejected')
+       ORDER BY booking_date DESC
+       LIMIT 1`,
       [user_id]
     );
+
     connCheck.release();
 
-    if (pendingRows.length > 0) {
-      return res.status(403).json({
-        status: "error",
-        message: "You have a pending payment on a previous booking. Please clear it before making a new booking."
-      });
+    if (activeBookings.length > 0) {
+      const activeBooking = activeBookings[0];
+
+      // Check if booking is not completed
+      if (activeBooking.is_completed !== 1 && activeBooking.status !== 'Completed' && activeBooking.status !== 'completed') {
+        return res.status(403).json({
+          status: "error",
+          message: "You have an active booking. Please complete it before making a new booking.",
+          booking_id: activeBooking.id,
+          booking_code: activeBooking.order_id
+        });
+      }
+
+      // Check for pending payment
+      if (activeBooking.remaining_amount > 0 || activeBooking.payment_status === 'partial_paid') {
+        return res.status(403).json({
+          status: "error",
+          message: "You have a pending payment on a previous booking. Please clear it before making a new booking.",
+          booking_id: activeBooking.id,
+          booking_code: activeBooking.order_id,
+          remaining_amount: activeBooking.remaining_amount
+        });
+      }
     }
   } catch (err) {
-    console.error("Error checking pending bookings:", err);
-    // Proceed cautiously, or fail safe. Let's fail safe to be strict.
+    console.error("Error checking active bookings:", err);
+    // Fail safe to be strict
     return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility" });
   }
   // ---------------------------------------------------------

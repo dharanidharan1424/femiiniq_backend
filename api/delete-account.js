@@ -10,15 +10,42 @@ router.delete("/", authenticateToken, async (req, res) => {
     req.body; // Sent from frontend
 
   try {
-    // 1. Check for 'upcoming' bookings
-    const [bookings] = await pool.query(
-      "SELECT id FROM demobookings WHERE user_id=? AND status='upcoming'",
+    // 1. Check for ANY active bookings (not completed/cancelled)
+    const [activeBookings] = await pool.query(
+      `SELECT id, status, booking_date, remaining_amount, order_id
+       FROM bookings 
+       WHERE user_id = ? 
+       AND status NOT IN ('Completed', 'completed', 'Cancelled', 'cancelled', 'Rejected', 'rejected')
+       ORDER BY booking_date DESC`,
       [userId]
     );
-    if (bookings.length > 0) {
+
+    if (activeBookings.length > 0) {
       return res.status(409).json({
         status: "error",
-        message: "Cannot delete account. You have upcoming bookings.",
+        message: "Cannot delete account. You have active bookings. Please complete or cancel them first.",
+        active_bookings_count: activeBookings.length,
+        booking_ids: activeBookings.map(b => b.order_id || b.id)
+      });
+    }
+
+    // 2. Check for pending payments on ANY booking
+    const [pendingPayments] = await pool.query(
+      `SELECT id, order_id, remaining_amount 
+       FROM bookings 
+       WHERE user_id = ? 
+       AND remaining_amount > 0
+       AND status NOT IN ('Cancelled', 'cancelled', 'Rejected', 'rejected')`,
+      [userId]
+    );
+
+    if (pendingPayments.length > 0) {
+      const totalPending = pendingPayments.reduce((sum, b) => sum + parseFloat(b.remaining_amount || 0), 0);
+      return res.status(409).json({
+        status: "error",
+        message: "Cannot delete account. You have pending payments. Please clear all dues first.",
+        pending_bookings_count: pendingPayments.length,
+        total_pending_amount: totalPending.toFixed(2)
       });
     }
 
