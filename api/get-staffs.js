@@ -23,14 +23,22 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const staffId = req.params.id;
   try {
+    let numericId = parseInt(staffId);
+    let agentIdStr = staffId;
+
+    if (isNaN(numericId) && typeof staffId === 'string' && staffId.startsWith('agent_')) {
+      numericId = parseInt(staffId.replace('agent_', ''));
+    }
+
     const [rows] = await pool.query(`
       SELECT *, 
       COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
       COALESCE(NULLIF(studio_name, ''), NULLIF(full_name, ''), NULLIF(fullname, ''), name) AS name,
       COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(area, ''), NULLIF(city, ''))) AS address
-      FROM agents WHERE id = ? OR agent_id = ?`, [
-      staffId,
-      staffId
+      FROM agents WHERE id = ? OR agent_id = ? OR id = ?`, [
+      numericId,
+      agentIdStr,
+      numericId
     ]);
     if (rows.length === 0) {
       return res
