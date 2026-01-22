@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
       FROM service_type 
       ${filter1}
       UNION ALL
-      SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, price, duration, description, procedure AS \`procedure\` 
+      SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, price, duration, description, \`procedure\` AS \`procedure\` 
       FROM service_types 
       ${filter2}
     `;
