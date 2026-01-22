@@ -14,7 +14,8 @@ module.exports = function authenticateToken(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "secret-key";
+    const decoded = jwt.verify(token, secret);
 
     // 🔥 THIS LINE IS CRITICAL
     req.user = decoded;
