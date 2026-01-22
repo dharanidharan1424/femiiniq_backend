@@ -7,9 +7,9 @@ router.get("/", async (req, res) => {
   try {
     if (!staff_id) {
       const [rows] = await pool.query(`
-        SELECT id, category_id, name, image, image AS mobile_url, staff_id, agent_id, price, duration, description, procedure_desc AS procedure FROM service_type
+        SELECT id, category_id, name, image, image AS mobile_url, staff_id, agent_id, agent_name, price, duration, description, procedure_desc AS procedure FROM service_type
         UNION ALL
-        SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, price, duration, description, procedure AS procedure FROM service_types
+        SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, NULL AS agent_name, price, duration, description, procedure AS procedure FROM service_types
       `);
       return res.json({ data: rows });
     }
@@ -39,11 +39,11 @@ router.get("/", async (req, res) => {
     filter2 += ")";
 
     const query = `
-      SELECT id, category_id, name, image, image AS mobile_url, staff_id, agent_id, price, duration, description, procedure_desc AS \`procedure\` 
+      SELECT id, category_id, name, image, image AS mobile_url, staff_id, agent_id, agent_name, price, duration, description, procedure_desc AS \`procedure\` 
       FROM service_type 
       ${filter1}
       UNION ALL
-      SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, price, duration, description, \`procedure\` AS \`procedure\` 
+      SELECT id, category_id, name, image, image AS mobile_url, staff_id, NULL AS agent_id, NULL AS agent_name, price, duration, description, \`procedure\` AS \`procedure\` 
       FROM service_types 
       ${filter2}
     `;
