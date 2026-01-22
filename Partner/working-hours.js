@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/dummyDb.js");
-const { generateSlotsForAgent } = require("../../services/availabilityService.js");
+const { generateSlotsForAgent } = require("../services/availabilityService.js");
 
 // POST /partner/availability/working-hours - Update working hours
 router.post("/working-hours", async (req, res) => {

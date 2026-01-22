@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/dummyDb.js");
-const { generateSlotsForAgent } = require("../../services/availabilityService.js");
+const { generateSlotsForAgent } = require("../services/availabilityService.js");
 
 // POST /partner/availability/generate-slots - Generate slots for date range
 router.post("/generate-slots", async (req, res) => {
