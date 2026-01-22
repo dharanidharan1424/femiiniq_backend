@@ -9,9 +9,26 @@ router.get("/", async (req, res) => {
     const params = [];
 
     if (staff_id) {
-      // Allow fetching by staff_id OR agent_id
-      query += " WHERE staff_id = ? OR agent_id = ?";
-      params.push(staff_id, staff_id);
+      let numericId = parseInt(staff_id);
+      let agentIdStr = staff_id;
+
+      // Handle agent_ prefix if present
+      if (isNaN(numericId) && typeof staff_id === 'string' && staff_id.startsWith('agent_')) {
+        numericId = parseInt(staff_id.replace('agent_', ''));
+      }
+
+      if (!isNaN(numericId)) {
+        // Broad search for any variation of the ID
+        query += ` WHERE (staff_id = ? 
+                   OR agent_id = ? 
+                   OR agent_id = ?
+                   OR staff_id IN (SELECT id FROM staffs WHERE shop_id = ?))`;
+        params.push(numericId, numericId, agentIdStr, numericId);
+      } else {
+        // Fallback for non-numeric/non-agent_prefix strings
+        query += " WHERE agent_id = ?";
+        params.push(staff_id);
+      }
     }
 
     const [rows] = await pool.query(query, params);
