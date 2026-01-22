@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
     // Insert agent WITHOUT shop_id first, so we can use insertId
     const [result] = await pool.query(
       "INSERT INTO agents (email, full_name, name, status) VALUES (?, ?, ?, ?)",
-      [email, fullname, fullname, "Available"]
+      [email, fullname, fullname, "Pending Onboarding"]
     );
 
     const agentId = result.insertId;

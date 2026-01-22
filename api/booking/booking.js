@@ -721,13 +721,20 @@ router.post("/confirm", async (req, res) => {
     // Generate secure 4-digit OTP
     // Generate 4-digit OTP
     const startOtp = Math.floor(1000 + Math.random() * 9000).toString();
-    // const bcrypt = require('bcrypt'); 
-    // const hashedOtp = await bcrypt.hash(startOtp, 10);
 
-    // Storing PLAIN OTP as per requirement to display it in User App
+    // Check if fully paid to generate complete_otp now
+    const [bookingRows] = await conn.execute("SELECT payment_status, remaining_amount, totalprice FROM bookings WHERE id = ?", [booking_id]);
+    let completeOtp = null;
+    if (bookingRows.length > 0) {
+      const b = bookingRows[0];
+      if (b.payment_status === 'paid' && Number(b.remaining_amount) === 0) {
+        completeOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      }
+    }
+
     await conn.execute(
-      `UPDATE bookings SET booking_status = 'confirmed', start_otp = ? WHERE id = ?`,
-      [startOtp, booking_id]
+      `UPDATE bookings SET booking_status = 'confirmed', start_otp = ?, complete_otp = ? WHERE id = ?`,
+      [startOtp, completeOtp, booking_id]
     );
 
     // Notify user (In real app, send startOtp via SMS/Push to USER so they can give it to artist)
@@ -858,6 +865,16 @@ router.post("/verify-start-otp", async (req, res) => {
 
     if (!dbOtp || String(dbOtp).trim() !== String(otp).trim()) {
       return res.status(400).json({ status: "error", message: "Invalid OTP" });
+    }
+
+    // Check if fully paid to generate complete_otp if not already there
+    const [bookingRows] = await conn.execute("SELECT payment_status, remaining_amount, complete_otp FROM bookings WHERE id = ?", [booking_id]);
+    if (bookingRows.length > 0) {
+      const b = bookingRows[0];
+      if (b.payment_status === 'paid' && Number(b.remaining_amount) === 0 && !b.complete_otp) {
+        const completeOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        await conn.execute("UPDATE bookings SET complete_otp = ? WHERE id = ?", [completeOtp, booking_id]);
+      }
     }
 
     await conn.execute("UPDATE bookings SET is_started = 1, status = 'Started' WHERE id = ?", [booking_id]);
