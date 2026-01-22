@@ -1,46 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/dummyDb.js");
-
-// Helper function to add minutes to a time string
-function addMinutes(timeStr, minutes) {
-    const [hours, mins] = timeStr.split(':').map(Number);
-    const totalMinutes = hours * 60 + mins + minutes;
-    const newHours = Math.floor(totalMinutes / 60);
-    const newMins = totalMinutes % 60;
-    return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}:00`;
-}
-
-// Helper function to convert time to minutes
-function timeToMinutes(timeStr) {
-    const [hours, mins] = timeStr.split(':').map(Number);
-    return hours * 60 + mins;
-}
-
-// Generate daily slots based on working hours and interval
-function generateDailySlots(workStart, workEnd, serviceDuration, intervalMinutes) {
-    const slots = [];
-    const workStartMinutes = timeToMinutes(workStart);
-    const workEndMinutes = timeToMinutes(workEnd);
-
-    let currentMinutes = workStartMinutes;
-
-    while (currentMinutes < workEndMinutes) {
-        const slotStartTime = `${String(Math.floor(currentMinutes / 60)).padStart(2, '0')}:${String(currentMinutes % 60).padStart(2, '0')}:00`;
-        const slotEndMinutes = currentMinutes + serviceDuration;
-
-        // Only add slot if it ends within working hours
-        if (slotEndMinutes <= workEndMinutes) {
-            const slotEndTime = `${String(Math.floor(slotEndMinutes / 60)).padStart(2, '0')}:${String(slotEndMinutes % 60).padStart(2, '0')}:00`;
-            slots.push({ start_time: slotStartTime, end_time: slotEndTime });
-        }
-
-        // Next slot starts after service duration + interval
-        currentMinutes = slotEndMinutes + intervalMinutes;
-    }
-
-    return slots;
-}
+const { generateSlotsForAgent } = require("../../services/availabilityService.js");
 
 // POST /partner/availability/generate-slots - Generate slots for date range
 router.post("/generate-slots", async (req, res) => {
@@ -53,112 +14,20 @@ router.post("/generate-slots", async (req, res) => {
         });
     }
 
-    const finalServiceDuration = service_duration || 60; // Default 60 minutes
-
     try {
-        // Fetch provider settings
-        const [providerSettings] = await db.query(
-            "SELECT * FROM provider_settings WHERE agent_id = ?",
-            [agent_id]
-        );
+        const result = await generateSlotsForAgent(agent_id, start_date, end_date, service_duration);
 
-        const settings = providerSettings.length > 0 ? providerSettings[0] : {
-            provider_type: 'solo',
-            specialist_count: 1,
-            interval_minutes: 30
-        };
-
-        // Fetch agent working hours
-        const [agents] = await db.query(
-            "SELECT work_start, work_end FROM agents WHERE agent_id = ?",
-            [agent_id]
-        );
-
-        if (agents.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "Agent not found"
-            });
-        }
-
-        const workStart = agents[0].work_start || '09:00:00';
-        const workEnd = agents[0].work_end || '18:00:00';
-
-        // Generate slots for each date in range
-        const startDateObj = new Date(start_date);
-        const endDateObj = new Date(end_date);
-        let currentDate = new Date(startDateObj);
-
-        let totalSlotsCreated = 0;
-        const conn = await db.getConnection();
-
-        try {
-            await conn.beginTransaction();
-
-            while (currentDate <= endDateObj) {
-                const dateStr = currentDate.toISOString().split('T')[0];
-
-                // Generate slots for this date
-                const dailySlots = generateDailySlots(
-                    workStart,
-                    workEnd,
-                    finalServiceDuration,
-                    settings.interval_minutes
-                );
-
-                // Insert slots into availability_slots
-                for (const slot of dailySlots) {
-                    await conn.query(`
-            INSERT INTO availability_slots 
-              (agent_id, date, start_time, end_time, is_available)
-            VALUES (?, ?, ?, ?, TRUE)
-            ON DUPLICATE KEY UPDATE
-              end_time = VALUES(end_time),
-              is_available = VALUES(is_available)
-          `, [agent_id, dateStr, slot.start_time, slot.end_time]);
-
-                    // Also create booking slot with capacity
-                    await conn.query(`
-            INSERT INTO booking_slots 
-              (agent_id, date, start_time, end_time, total_capacity, booked_count)
-            VALUES (?, ?, ?, ?, ?, 0)
-            ON DUPLICATE KEY UPDATE
-              end_time = VALUES(end_time),
-              total_capacity = VALUES(total_capacity)
-          `, [agent_id, dateStr, slot.start_time, slot.end_time, settings.specialist_count]);
-
-                    totalSlotsCreated++;
-                }
-
-                // Move to next date
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-
-            await conn.commit();
-
-            res.json({
-                status: "success",
-                message: `Generated ${totalSlotsCreated} slots successfully`,
-                slots_created: totalSlotsCreated,
-                settings: {
-                    work_hours: `${workStart} - ${workEnd}`,
-                    service_duration: finalServiceDuration,
-                    interval_minutes: settings.interval_minutes,
-                    provider_type: settings.provider_type,
-                    capacity: settings.specialist_count
-                }
-            });
-        } catch (error) {
-            await conn.rollback();
-            throw error;
-        } finally {
-            conn.release();
-        }
+        res.json({
+            status: "success",
+            message: `Generated ${result.slots_created} slots successfully`,
+            slots_created: result.slots_created,
+            settings: result.settings
+        });
     } catch (error) {
         console.error("Error generating slots:", error);
         res.status(500).json({
             status: "error",
-            message: "Failed to generate slots"
+            message: error.message || "Failed to generate slots"
         });
     }
 });

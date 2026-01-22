@@ -117,6 +117,8 @@ app.use("/partner/chat", ChatPermissionRouter);
 
 // New availability system routes
 app.use("/partner/provider-settings", providerSettingsRouter);
+const workingHoursRouter = require("./Partner/working-hours.js");
+app.use("/partner/availability", workingHoursRouter);
 app.use("/partner/availability", availabilitySlotsRouter);
 app.use("/api/booking/available-slots", getAvailableSlotsRouter);
 
