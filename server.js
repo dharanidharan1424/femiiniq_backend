@@ -43,7 +43,7 @@ app.use("/register", registerRouter);
 app.use("/logout", logoutRouter);
 app.use("/otp", OtpRouter);
 app.use("/update-profile", updateProfileRouter);
-app.use("/delete-profile", authenticateToken, deleteProfileRouter);
+app.use("/delete-account", authenticateToken, deleteProfileRouter);
 app.use("/booking", BookingRouter);
 app.use("/payments", paymentsRouter);
 app.use("/reviews", ReviewRouter);
