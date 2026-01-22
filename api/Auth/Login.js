@@ -90,6 +90,7 @@ router.post("/", async (req, res) => {
     console.log("User profile loaded:", user.id, user.email);
 
     // 5. Generate JWT
+    const payload = { userId, email: userEmail };
     const secret = process.env.JWT_SECRET || "secret-key";
     const token = jwt.sign(payload, secret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -145,6 +146,7 @@ router.post("/oauth-login", async (req, res) => {
     }
 
     // Generate JWT token for the user
+    const payload = { userId: user.id, email: user.email };
     const secret = process.env.JWT_SECRET || "secret-key";
     const token = jwt.sign(payload, secret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
