@@ -6,7 +6,7 @@ const pool = require("../config/db.js");
 router.get("/", async (req, res) => {
   const { staff_id } = req.query;
   try {
-    let query = "SELECT * FROM service_package";
+    let query = "SELECT *, image AS mobile_url, process_desc AS process FROM service_package";
     const params = [];
 
     if (staff_id) {
@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM service_package WHERE category_id = ?",
+      "SELECT *, image AS mobile_url, process_desc AS process FROM service_package WHERE category_id = ?",
       [req.params.id]
     );
     if (rows.length === 0) {

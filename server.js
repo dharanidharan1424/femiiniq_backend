@@ -123,6 +123,10 @@ app.use("/api/booking/available-slots", getAvailableSlotsRouter);
 // Partner account deletion
 app.use("/delete-agentProfile", partnerDeleteAccountRouter);
 
+// Get specialists for a shop
+const getSpecialistsRouter = require("./Partner/get-specialists.js");
+app.use("/partner/get-specialists", getSpecialistsRouter);
+
 // <---------------------------------------------------------REAL DATA INTEGRATION----------------------------------------------------------->
 const bookingsRouter = require("./Real-data/Bookings/bookings.js");
 

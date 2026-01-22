@@ -62,6 +62,48 @@ router.post("/", async (req, res) => {
   }
 });
 
+// POST /partner/add/staff
+router.post("/staff", async (req, res) => {
+  console.log("📥 Onboarding Add Staff Request Received:", req.body);
+  try {
+    const { agent_id, name, image, specialty } = req.body;
+
+    if (!agent_id || !name) {
+      return res.status(400).json({ status: "error", message: "Missing required fields for staff addition." });
+    }
+
+    // 1. Get shop_id from agents table
+    const [agents] = await db.query("SELECT id as shop_id FROM agents WHERE agent_id = ?", [agent_id]);
+    const shop_id = agents.length > 0 ? agents[0].shop_id : 1;
+
+    // Generate ID manually since AUTO_INCREMENT might be missing
+    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM staffs");
+    const nextId = (maxIdResult[0].maxId || 0) + 1;
+
+    const query = `
+      INSERT INTO staffs (id, name, image, shop_id, experience)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      nextId,
+      name,
+      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
+      shop_id,
+      specialty || 'Professional Specialist'
+    ];
+
+    console.log("📝 Executing Staff Insert query with values:", values);
+    await db.query(query, values);
+    console.log("✅ Staff added successfully to DB.");
+
+    return res.status(201).json({ status: "success", message: "Staff added successfully" });
+  } catch (error) {
+    console.error("Onboarding Add Staff Error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
 // POST /api/services
 router.post("/service", async (req, res) => {
   try {

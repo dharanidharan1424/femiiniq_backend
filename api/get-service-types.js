@@ -5,7 +5,7 @@ const pool = require("../config/db.js");
 router.get("/", async (req, res) => {
   const { staff_id } = req.query;
   try {
-    let query = "SELECT * FROM service_type";
+    let query = "SELECT *, image AS mobile_url, procedure_desc AS procedure FROM service_type";
     const params = [];
 
     if (staff_id) {
