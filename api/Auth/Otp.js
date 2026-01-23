@@ -7,22 +7,12 @@ const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
-// Verify connection configuration
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ NodeMailer SMTP Connection Error:", error);
-  } else {
-    console.log("✅ NodeMailer SMTP is ready for artists");
-  }
-});
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
 (async () => {
   try {
@@ -64,18 +54,19 @@ router.post("/send-otp", async (req, res) => {
     console.log("Processing OTP request for:", email, "Type:", type);
 
     if (type === "artist") {
-      console.log("Attempting to send artist OTP via NodeMailer...");
+      console.log("Attempting to send artist OTP via Brevo API...");
       try {
-        await transporter.sendMail({
-          from: `"feminiq Artist" <${process.env.SMTP_USER}>`,
-          to: email,
-          subject: "Your Artist Signup OTP Code",
-          html: `<h2>Welcome to feminiq!</h2><p>Your OTP for artist account creation is:</p><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`,
-        });
-        console.log(`✅ OTP successfully sent via NodeMailer to artist: ${email}`);
-      } catch (mailError) {
-        console.error("❌ NodeMailer sendMail Error:", mailError);
-        throw mailError; // Re-throw to be caught by outer catch
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = "Your Artist Signup OTP Code";
+        sendSmtpEmail.htmlContent = `<h2>Welcome to feminiq!</h2><p>Your OTP for artist account creation is:</p><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`;
+        sendSmtpEmail.sender = { name: "feminiq Artist", email: "socialflyinfotech@gmail.com" };
+        sendSmtpEmail.to = [{ email: email }];
+
+        const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log("✅ Brevo API Success (Artist):", data);
+      } catch (brevoError) {
+        console.error("❌ Brevo API Error (Artist):", brevoError);
+        return res.status(500).json({ success: false, error: "Brevo API failed", details: brevoError.message });
       }
     } else {
       // Default to Resend for mobile app/other users
