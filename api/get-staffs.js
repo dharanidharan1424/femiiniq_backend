@@ -31,15 +31,19 @@ router.get("/:id", async (req, res) => {
       numericId = parseInt(staffId.replace('agent_', ''));
     }
 
+    // If parsing fails, set numericId to -1 (or some invalid ID) to avoid NaN errors in SQL
+    if (isNaN(numericId)) {
+      numericId = -1;
+    }
+
     const [rows] = await pool.query(`
       SELECT *, 
       COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
       COALESCE(NULLIF(full_name, ''), name) AS name,
       COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(address_line2, ''), NULLIF(city, ''))) AS address
-      FROM agents WHERE (id = ? OR agent_id = ? OR id = ?) AND hide_profile = 'no'`, [
+      FROM agents WHERE (id = ? OR agent_id = ?) AND hide_profile = 'no'`, [
       numericId,
-      agentIdStr,
-      numericId
+      agentIdStr
     ]);
     if (rows.length === 0) {
       return res
