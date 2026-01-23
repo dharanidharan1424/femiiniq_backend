@@ -53,7 +53,7 @@ router.get("/:id", async (req, res) => {
     res.status(200).json({ status: "success", data: rows[0] });
   } catch (error) {
     console.error("DB query error:", error);
-    res.status(500).json({ status: "error", error: "Database query failed" });
+    res.status(500).json({ status: "error", error: error.message || "Database query failed" });
   }
 });
 
