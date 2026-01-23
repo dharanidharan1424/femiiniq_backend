@@ -141,6 +141,50 @@ router.post("/", async (req, res) => {
     console.error("Error checking active bookings:", err);
     // Fail safe to be strict
     return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility" });
+    return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility" });
+  }
+  // ---------------------------------------------------------
+
+  // --- [UPDATED] AVAILABILITY CHECK: Continuous Slot Validation ---
+  const { validateSlotChain } = require("../../services/availabilityService");
+
+  try {
+    // Calculate total duration from services
+    let totalDuration = 0;
+    let parsedServices = [];
+
+    if (typeof services === 'string') {
+      try { parsedServices = JSON.parse(services); } catch (e) { }
+    } else if (Array.isArray(services)) {
+      parsedServices = services;
+    }
+
+    // Sum up duration (default 60 if missing)
+    parsedServices.forEach(s => {
+      totalDuration += parseInt(s.duration || 60);
+    });
+
+    if (totalDuration === 0) totalDuration = 60; // Fallback
+
+    // Validate slots (only if agent_id and time are present)
+    if (agent_id && booking_date && booking_time) {
+      // booking_time is "HH:MM", convert to "HH:MM:00" if needed by service
+      const fmtTime = booking_time.length === 5 ? `${booking_time}:00` : booking_time;
+
+      const isValid = await validateSlotChain(agent_id, booking_date, fmtTime, totalDuration);
+
+      if (!isValid) {
+        return res.status(400).json({
+          status: "error",
+          message: `The selected time slot is not available for a ${totalDuration} min service. Please choose another time.`
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error validating slots:", err);
+    // We don't block on validation error if system fails, but locally we log it.
+    // Ideally we should block.
+    return res.status(500).json({ status: "error", message: "Failed to validate availability." });
   }
   // ---------------------------------------------------------
 
