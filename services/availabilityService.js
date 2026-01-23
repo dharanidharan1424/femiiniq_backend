@@ -114,22 +114,17 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
             // The 9:00 booking remains valid but the slot is gone?
             // Let's implement a clean-up that deletes only UNBOOKED slots first.
 
-            // Aggressively clear slots that are not booked to clean up junk data
-            // We use NOT EXISTS to preserve slots that have actual bookings
+            // Aggressively clear slots. 
+            // We delete ALL availability_slots for the range to ensure the Schedule UI (which reflects availability) is clean.
+            // Existing bookings in `booking_slots` are preserved if they have counts, but they won't appear as "Available" slots if they don't match the new schedule.
+            // This is the correct behavior: we are redefining "Availability".
             await conn.query(`
                 DELETE FROM availability_slots 
                 WHERE agent_id = ? 
                 AND date >= ? AND date <= ?
-                AND NOT EXISTS (
-                    SELECT 1 FROM booking_slots b 
-                    WHERE b.agent_id = availability_slots.agent_id 
-                    AND b.date = availability_slots.date 
-                    AND b.start_time = availability_slots.start_time 
-                    AND b.booked_count > 0
-                )
             `, [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]]);
 
-            // Clean up unbooked entries from booking_slots as well
+            // Clean up unbooked entries from booking_slots
             await conn.query(`
                 DELETE FROM booking_slots 
                 WHERE agent_id = ? 
