@@ -7,8 +7,22 @@ const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
 const nodemailer = require("nodemailer");
 
-// (NodeMailer was removed because Render blocks SMTP ports 465/587)
-// We will use Resend for both Users and Artists for maximum reliability.
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// Verify connection configuration
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ NodeMailer SMTP Connection Error:", error);
+  } else {
+    console.log("✅ NodeMailer SMTP is ready for artists");
+  }
+});
 
 (async () => {
   try {
@@ -50,24 +64,35 @@ router.post("/send-otp", async (req, res) => {
     console.log("Processing OTP request for:", email, "Type:", type);
 
     if (type === "artist") {
-      console.log("Attempting to send artist OTP via Resend...");
-      await resend.emails.send({
-        from: "feminiq <feminiq@resend.dev>",
-        to: email,
-        subject: "Your Artist Signup OTP Code",
-        html: `<h2>Welcome to feminiq!</h2><p>Your OTP for artist account creation is:</p><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`,
-      });
-      console.log(`✅ OTP successfully sent via Resend to artist: ${email}`);
+      console.log("Attempting to send artist OTP via NodeMailer...");
+      try {
+        await transporter.sendMail({
+          from: `"feminiq Artist" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: "Your Artist Signup OTP Code",
+          html: `<h2>Welcome to feminiq!</h2><p>Your OTP for artist account creation is:</p><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`,
+        });
+        console.log(`✅ OTP successfully sent via NodeMailer to artist: ${email}`);
+      } catch (mailError) {
+        console.error("❌ NodeMailer sendMail Error:", mailError);
+        throw mailError; // Re-throw to be caught by outer catch
+      }
     } else {
       // Default to Resend for mobile app/other users
       console.log("Attempting to send user OTP via Resend...");
-      await resend.emails.send({
-        from: "feminiq <feminiq@resend.dev>",
-        to: email,
-        subject: "Your OTP Code",
-        html: `<h2>Your OTP is:</h2><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`,
-      });
-      console.log(`✅ OTP successfully sent via Resend to user: ${email}`);
+      try {
+        const data = await resend.emails.send({
+          from: "feminiq <feminiq@resend.dev>",
+          to: email,
+          subject: "Your OTP Code",
+          html: `<h2>Your OTP is:</h2><p style="font-size:2em;"><b>${otp}</b></p><p>Expires in 10 minutes.</p>`,
+        });
+        console.log("Resend API Response (User):", data);
+        console.log(`✅ OTP successfully sent via Resend to user: ${email}`);
+      } catch (resendError) {
+        console.error("❌ Resend API Error (User):", resendError);
+        return res.status(500).json({ success: false, error: "Resend API failed", details: resendError.message });
+      }
     }
 
     res.json({ success: true });
