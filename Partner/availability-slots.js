@@ -4,8 +4,17 @@ const db = require("../config/dummyDb.js");
 const { generateSlotsForAgent } = require("../services/availabilityService.js");
 
 // POST /partner/availability/generate-slots - Generate slots for date range
+// POST /partner/availability/generate-slots - Generate slots for date range
 router.post("/generate-slots", async (req, res) => {
-    const { agent_id, start_date, end_date, service_duration } = req.body;
+    const {
+        agent_id,
+        start_date,
+        end_date,
+        service_duration,
+        interval_minutes,
+        start_time_override,
+        end_time_override
+    } = req.body;
 
     if (!agent_id || !start_date || !end_date) {
         return res.status(400).json({
@@ -15,7 +24,15 @@ router.post("/generate-slots", async (req, res) => {
     }
 
     try {
-        const result = await generateSlotsForAgent(agent_id, start_date, end_date, service_duration);
+        const result = await generateSlotsForAgent(
+            agent_id,
+            start_date,
+            end_date,
+            service_duration,
+            interval_minutes,
+            start_time_override,
+            end_time_override
+        );
 
         res.json({
             status: "success",

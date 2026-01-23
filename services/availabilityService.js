@@ -95,6 +95,48 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
         try {
             await conn.beginTransaction();
 
+            // Clear existing availability_slots and booking_slots for the requested range to prevent overlaps from previous settings
+            // Note: In a real production app, we should valid that we are not deleting slots that have actual bookings. 
+            // For now, per requirements, we regenerate. Ideally we check for boookings first.
+            const deleteParams = [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]];
+
+            // Delete slots that don't have active bookings? 
+            // Or just wipe all availablity? The prompt says "if it was booked it should remove in user side".
+            // If we delete a slot that has a booking, we lose track of capacity?
+            // Actually, booking_slots table tracks capacity. If we delete it...
+            // Let's assume we want to "reset" availability.
+            // Safe approach: Delete where booked_count = 0.
+            // But if settings changed (e.g. duration), we might need to invalidate even booked slots?
+            // For this phase, let's just delete all and recreate. 
+            // Wait, if there are existing bookings (booked_count > 0), we shouldn't delete that record blindly or we break relationships?
+            // The `booking_slots` table seems to be the capacity tracker. 
+            // If we have a booking at 9:00, and we change interval to start at 9:30...
+            // The 9:00 booking remains valid but the slot is gone?
+            // Let's implement a clean-up that deletes only UNBOOKED slots first.
+
+            // Aggressively clear slots that are not booked to clean up junk data
+            // We use NOT EXISTS to preserve slots that have actual bookings
+            await conn.query(`
+                DELETE FROM availability_slots 
+                WHERE agent_id = ? 
+                AND date >= ? AND date <= ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM booking_slots b 
+                    WHERE b.agent_id = availability_slots.agent_id 
+                    AND b.date = availability_slots.date 
+                    AND b.start_time = availability_slots.start_time 
+                    AND b.booked_count > 0
+                )
+            `, [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]]);
+
+            // Clean up unbooked entries from booking_slots as well
+            await conn.query(`
+                DELETE FROM booking_slots 
+                WHERE agent_id = ? 
+                AND date >= ? AND date <= ? 
+                AND booked_count = 0
+            `, [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]]);
+
             while (currentDate <= endDateObj) {
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
