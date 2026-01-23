@@ -9,9 +9,9 @@ const nodemailer = require("nodemailer");
 
 // SMTP Transporter for Artist Signup
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false,
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -19,7 +19,8 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
-  requireTLS: true
+  connectionTimeout: 15000, // 15 seconds
+  greetingTimeout: 15000,
 });
 
 // Verify connection configuration
