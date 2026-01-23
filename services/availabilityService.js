@@ -218,11 +218,7 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
     }
 }
 
-    } catch (error) {
-    console.error("Service Error generating slots:", error);
-    throw error;
-}
-}
+
 
 /**
  * Validates if a service can be booked starting at a specific slot.
