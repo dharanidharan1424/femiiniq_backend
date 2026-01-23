@@ -31,7 +31,7 @@ function generateDailySlots(workStart, workEnd, serviceDuration, intervalMinutes
     return slots;
 }
 
-async function generateSlotsForAgent(agent_id, start_date, end_date, service_duration = 60) {
+async function generateSlotsForAgent(agent_id, start_date, end_date, service_duration = 60, interval_minutes = null, start_time_override = null, end_time_override = null) {
     console.log(`Generating slots for agent ${agent_id} from ${start_date} to ${end_date}`);
 
     try {
@@ -46,6 +46,10 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
             specialist_count: 1,
             interval_minutes: 30
         };
+
+        // Use overrides if provided, otherwise settings/defaults
+        const finalInterval = interval_minutes !== null ? parseInt(interval_minutes) : settings.interval_minutes;
+        const finalDuration = parseInt(service_duration);
 
         // Fetch detailed working hours first
         const [workingHours] = await db.query(
@@ -136,16 +140,33 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
 
-                const daySchedule = workingHoursMap[dayName];
+                // Check specific day overrides first (passed as args)
+                if (start_time_override && end_time_override) {
+                    // Determine if closed (e.g. 00:00 - 00:00)
+                    if (start_time_override === "00:00:00" && end_time_override === "00:00:00") {
+                        isClosed = true;
+                    } else {
+                        startTime = start_time_override;
+                        endTime = end_time_override;
+                        isClosed = false;
+                    }
+                } else {
+                    const daySchedule = workingHoursMap[dayName];
+                    if (daySchedule) {
+                        startTime = daySchedule.start_time;
+                        endTime = daySchedule.end_time;
+                        isClosed = daySchedule.is_closed;
+                    }
+                }
 
                 // Only generate slots if schedule exists and not closed
-                if (daySchedule && !daySchedule.is_closed) {
+                if (startTime && !isClosed) {
                     // Generate slots for this date
                     const dailySlots = generateDailySlots(
-                        daySchedule.start_time,
-                        daySchedule.end_time,
-                        service_duration,
-                        settings.interval_minutes
+                        startTime,
+                        endTime,
+                        finalDuration,
+                        finalInterval
                     );
 
                     // Insert slots into availability_slots
