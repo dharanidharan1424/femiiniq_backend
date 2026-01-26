@@ -99,12 +99,19 @@ router.get("/:agentId", async (req, res) => {
     }
 
     try {
-        const [settings] = await db.query(
-            "SELECT * FROM provider_settings WHERE agent_id = ?",
+        const [rows] = await db.query(
+            `SELECT ps.*, a.category 
+             FROM provider_settings ps 
+             LEFT JOIN agents a ON ps.agent_id = a.agent_id 
+             WHERE ps.agent_id = ?`,
             [agentId]
         );
 
-        if (settings.length === 0) {
+        if (rows.length === 0) {
+            // Check if agent exists at least to return default with category
+            const [agentRows] = await db.query("SELECT category FROM agents WHERE agent_id = ?", [agentId]);
+            const agentCategory = agentRows.length > 0 ? agentRows[0].category : null;
+
             // Return default settings if not configured
             return res.json({
                 status: "success",
@@ -112,7 +119,8 @@ router.get("/:agentId", async (req, res) => {
                     provider_type: 'solo',
                     specialist_count: 1,
                     interval_minutes: 30,
-                    is_default: true
+                    is_default: true,
+                    category: agentCategory
                 }
             });
         }
@@ -120,7 +128,7 @@ router.get("/:agentId", async (req, res) => {
         res.json({
             status: "success",
             settings: {
-                ...settings[0],
+                ...rows[0],
                 is_default: false
             }
         });
