@@ -31,10 +31,13 @@ router.post("/", async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert agent WITHOUT shop_id first, so we can use insertId
+    // Generate temp ID to satisfy constraints (will be updated to FP format later)
+    const tempAgentId = "TEMP-" + Date.now();
+
+    // Insert agent with temporary ID and password
     const [result] = await pool.query(
-      "INSERT INTO agents (email, full_name, name, status) VALUES (?, ?, ?, ?)",
-      [email, fullname, fullname, "Pending Onboarding"]
+      "INSERT INTO agents (email, full_name, name, status, agent_id, password) VALUES (?, ?, ?, ?, ?, ?)",
+      [email, fullname, fullname, "Pending Onboarding", tempAgentId, passwordHash]
     );
 
     const agentId = result.insertId;
