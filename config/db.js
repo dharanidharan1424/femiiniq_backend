@@ -1,37 +1,48 @@
 const mysql = require("mysql2/promise");
+const dotenv = require("dotenv");
+dotenv.config();
+
 
 const pool = mysql.createPool({
-  host: "trolley.proxy.rlwy.net",
-  port: "39841",
-  user: "root",
-  password: "XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz",//XwZeGsJsBjFrWOhaovnIiNvdIeCsEqYz
-  database: "railway",
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  charset: "utf8mb4",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
 
-  // Fix for PROTOCOL_CONNECTION_LOST on Render/Railway
-  // Aggressive v3 config + Retry Strategy
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+
+  waitForConnections: true,
+  connectionLimit: 5,
+  queueLimit: 0,
+
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  maxIdle: 0,
-  idleTimeout: 30000,
-  connectionLimit: 5
+  keepAliveInitialDelay: 10000,
+
+  charset: "utf8mb4",
 });
+
+export default pool;
+
 
 // Wrapper to retry queries on connection loss
 const originalQuery = pool.query.bind(pool);
 
 pool.query = async function (...args) {
-  try {
-    return await originalQuery(...args);
-  } catch (error) {
-    if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNRESET') {
-      console.warn('⚠️ Connection lost, retrying query...');
+  let retries = 3;
+  while (retries > 0) {
+    try {
       return await originalQuery(...args);
+    } catch (error) {
+      if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNRESET') {
+        console.warn(`⚠️ Connection lost, retrying query... (Attempts left: ${retries - 1})`);
+        retries--;
+        if (retries === 0) throw error;
+        // Wait 200ms to allow connection reset
+        await new Promise(res => setTimeout(res, 200));
+      } else {
+        throw error;
+      }
     }
-    throw error;
   }
 };
 
