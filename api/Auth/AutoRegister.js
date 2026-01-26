@@ -26,13 +26,6 @@ router.post("/", async (req, res) => {
         const uniqueId = `FG${String(userId).padStart(10, "0")}`;
         await pool.query("UPDATE users SET unique_id = ? WHERE id = ?", [uniqueId, userId]);
 
-        // Also insert into mobile_user_auth to keep consistency (optional but good for tracking)
-        // Password hash dummy since they can't login manually anyway
-        await pool.query(
-            "INSERT INTO mobile_user_auth (user_id, email, password_hash, status) VALUES (?, ?, ?, ?)",
-            [userId, email, "GUEST_NO_PASSWORD", "active"]
-        );
-
         // Generate JWT token
         const payload = { userId, email };
         const token = jwt.sign(payload, process.env.JWT_SECRET || "default_secret", {
