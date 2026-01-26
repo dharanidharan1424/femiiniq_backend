@@ -12,11 +12,9 @@ const pool = mysql.createPool({
   charset: "utf8mb4",
 
   // Fix for PROTOCOL_CONNECTION_LOST on Render/Railway
+  // Config Updated v2
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  maxIdle: 0, // Ensure no stale connections are kept
-  idleTimeout: 60000,
-  connectTimeout: 60000
+  keepAliveInitialDelay: 10000
 });
 
 // ✅ Function to check if the database is live
