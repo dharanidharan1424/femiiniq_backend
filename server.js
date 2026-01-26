@@ -141,7 +141,27 @@ const bookingsRouter = require("./Real-data/Bookings/bookings.js");
 app.use("/real-data", bookingsRouter);
 
 // Start server
+// Start server
 const PORT = process.env.PORT || 3000;
+
+// AUTO-MIGRATION: Fix Agent Status Column
+const pool = require("./config/db");
+async function runAutoMigration() {
+  try {
+    console.log("Running Auto-Migration: Updating 'agents' status column...");
+    await pool.query(`
+            ALTER TABLE agents 
+            MODIFY COLUMN status 
+            ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding') 
+            NOT NULL DEFAULT 'Available'
+        `);
+    console.log("✅ Auto-Migration Successful: 'status' column updated.");
+  } catch (error) {
+    console.error("⚠️ Auto-Migration Failed (might already be updated):", error.message);
+  }
+}
+runAutoMigration();
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
