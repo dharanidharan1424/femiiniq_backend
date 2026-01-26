@@ -144,20 +144,43 @@ app.use("/real-data", bookingsRouter);
 // Start server
 const PORT = process.env.PORT || 3000;
 
-// AUTO-MIGRATION: Fix Agent Status Column
+// AUTO-MIGRATION: Self-Healing Database
 const pool = require("./config/db");
 async function runAutoMigration() {
   try {
-    console.log("Running Auto-Migration: Updating 'agents' status column...");
+    console.log("⚙️ Running Auto-Migration...");
+
+    // 1. Fix Status Column
+    console.log("-> Updating 'agents' status column...");
+    try {
+      await pool.query(`
+                ALTER TABLE agents 
+                MODIFY COLUMN status 
+                ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding') 
+                NOT NULL DEFAULT 'Available'
+            `);
+      console.log("   ✅ Status column updated.");
+    } catch (e) { console.log("   ℹ️ Status update skipped/failed (likely already done)."); }
+
+    // 2. Create provider_settings table
+    console.log("-> Checking/Creating 'provider_settings' table...");
     await pool.query(`
-            ALTER TABLE agents 
-            MODIFY COLUMN status 
-            ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding') 
-            NOT NULL DEFAULT 'Available'
+            CREATE TABLE IF NOT EXISTS provider_settings (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                agent_id VARCHAR(50) NOT NULL UNIQUE,
+                provider_type ENUM('solo', 'studio') NOT NULL DEFAULT 'solo',
+                specialist_count INT DEFAULT 1,
+                interval_minutes INT DEFAULT 30,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_agent_id (agent_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
-    console.log("✅ Auto-Migration Successful: 'status' column updated.");
+    console.log("   ✅ 'provider_settings' table ready.");
+
+    console.log("✨ Auto-Migration Complete.");
   } catch (error) {
-    console.error("⚠️ Auto-Migration Failed (might already be updated):", error.message);
+    console.error("⚠️ Auto-Migration Warning:", error.message);
   }
 }
 runAutoMigration();
