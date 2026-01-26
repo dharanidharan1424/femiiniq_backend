@@ -59,6 +59,8 @@ app.use("/notification", NotificationRouter);
 app.use("/report", reportsRouter);
 app.use("/bank", bankDetailsRouter);
 app.use("/coupon", BookingCouponRouter);
+const autoRegisterRouter = require("./api/Auth/AutoRegister.js");
+app.use("/api/auth/auto-register", autoRegisterRouter);
 
 // <-------------------------------------------------------------------------------------------------------------------->
 

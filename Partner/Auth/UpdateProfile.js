@@ -31,7 +31,10 @@ router.post("/", async (req, res) => {
     service_mode: agentProfile.service_mode || agentProfile.serviceMode,
     work_start: agentProfile.work_start || agentProfile.workingHourFrom,
     work_end: agentProfile.work_end || agentProfile.workingHourTo,
+
     travel_radius: agentProfile.travel_radius || agentProfile.travel_radius_km || agentProfile.travelRadius,
+    travel_charge: agentProfile.travel_charge || agentProfile.travelCharge,
+    service_location: agentProfile.service_location || agentProfile.service_location_type,
     experience: agentProfile.experience,
     category: agentProfile.category,
     latitude: agentProfile.latitude,
