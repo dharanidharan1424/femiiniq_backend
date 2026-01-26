@@ -4,7 +4,9 @@ const pool = require("../config/db.js");
 
 // Existing route for all staffs
 router.get("/", async (req, res) => {
+  console.log("Fetching staffs from DB...");
   try {
+    console.time("dbQuery");
     const [rows] = await pool.query(`
       SELECT *, 
       COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
@@ -13,6 +15,8 @@ router.get("/", async (req, res) => {
       FROM agents
       WHERE hide_profile = 'no'
     `);
+    console.timeEnd("dbQuery");
+    console.log(`Fetched ${rows.length} staffs.`);
     res.status(200).json({ status: "success", data: rows });
   } catch (error) {
     console.error("DB query error:", error);

@@ -8,8 +8,8 @@ require("dotenv").config();
 const app = express();
 
 const corsOptions = {
-  origin: "http://192.168.1.6:8081", // frontend origin you trust
-  credentials: true, // allow cookies/credentials
+  origin: true, // Allow all origins for troubleshooting
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
@@ -17,6 +17,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Import routers
 const apiRouter = require("./routes/ApiRoutes");
