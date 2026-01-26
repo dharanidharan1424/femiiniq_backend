@@ -12,10 +12,28 @@ const pool = mysql.createPool({
   charset: "utf8mb4",
 
   // Fix for PROTOCOL_CONNECTION_LOST on Render/Railway
-  // Config Updated v2
+  // Aggressive v3 config + Retry Strategy
   enableKeepAlive: true,
-  keepAliveInitialDelay: 10000
+  keepAliveInitialDelay: 0,
+  maxIdle: 0,
+  idleTimeout: 30000,
+  connectionLimit: 5
 });
+
+// Wrapper to retry queries on connection loss
+const originalQuery = pool.query.bind(pool);
+
+pool.query = async function (...args) {
+  try {
+    return await originalQuery(...args);
+  } catch (error) {
+    if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNRESET') {
+      console.warn('⚠️ Connection lost, retrying query...');
+      return await originalQuery(...args);
+    }
+    throw error;
+  }
+};
 
 // ✅ Function to check if the database is live
 async function checkDatabaseConnection() {
@@ -28,7 +46,6 @@ async function checkDatabaseConnection() {
   }
 }
 
-// Run the check once when this file is loaded
 checkDatabaseConnection();
 
 module.exports = pool;
