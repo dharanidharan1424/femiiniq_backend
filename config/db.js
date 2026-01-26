@@ -21,7 +21,7 @@ const pool = mysql.createPool({
   charset: "utf8mb4",
 });
 
-export default pool;
+
 
 
 // Wrapper to retry queries on connection loss
