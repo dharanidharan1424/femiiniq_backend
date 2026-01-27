@@ -6,8 +6,7 @@ const pool = require("../../config/dummyDb.js");
 require("dotenv").config();
 
 // MSG91 Constants
-const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1"; // Provided by user
-const MSG91_WIDGET_ID = "366141685136363034343637"; // User provided Widget ID
+const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1";
 
 // 1. Send OTP
 router.post("/send-otp", async (req, res) => {
@@ -16,13 +15,16 @@ router.post("/send-otp", async (req, res) => {
     if (!mobile) return res.status(400).json({ status: "error", message: "Mobile required" });
 
     try {
-        const formattedMobile = "91" + mobile; // Ensure country code
+        const formattedMobile = "91" + mobile;
 
-        console.log(`Sending OTP to: ${formattedMobile} using WidgetID: ${MSG91_WIDGET_ID}`);
+        console.log(`Sending OTP to: ${formattedMobile}`);
 
-        const url = `https://control.msg91.com/api/v5/otp?mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}&widget_id=${MSG91_WIDGET_ID}`;
+        // Using basic MSG91 OTP API without widget_id - will use default template
+        const url = `https://control.msg91.com/api/v5/otp?mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}`;
 
         const response = await axios.post(url);
+
+        console.log("MSG91 Response:", response.data);
 
         if (response.data.type === "success") {
             res.json({ success: true, message: "OTP Sent Successfully" });
@@ -32,8 +34,6 @@ router.post("/send-otp", async (req, res) => {
 
     } catch (error) {
         console.error("MSG91 Send Error:", error.response?.data || error.message);
-        // Fallback for development if MSG91 fails/quota exceeded
-        // res.json({ success: true, message: "OTP Sent (Dev Mock)" }); 
         res.status(500).json({ success: false, message: "Failed to send OTP via MSG91" });
     }
 });
