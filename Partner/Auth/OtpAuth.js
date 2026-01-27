@@ -7,6 +7,7 @@ require("dotenv").config();
 
 // MSG91 Constants
 const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1";
+const DEV_MODE = true; // Set to false when DLT is configured and SMS delivery works
 
 // 1. Send OTP
 router.post("/send-otp", async (req, res) => {
@@ -16,6 +17,20 @@ router.post("/send-otp", async (req, res) => {
 
     try {
         const formattedMobile = "91" + mobile;
+
+        // DEVELOPMENT MODE: Skip MSG91 and use hardcoded OTP 1234
+        if (DEV_MODE) {
+            console.log(`[OTP DEV MODE] Skipping MSG91. Use OTP: 1234 for mobile: ${formattedMobile}`);
+            return res.json({
+                success: true,
+                message: "OTP Sent Successfully (Dev Mode - Use 1234)",
+                debug: {
+                    sentTo: formattedMobile,
+                    devMode: true,
+                    hint: "Use OTP: 1234"
+                }
+            });
+        }
 
         console.log(`[OTP] Sending to: ${formattedMobile} (Original input: ${mobile})`);
 
