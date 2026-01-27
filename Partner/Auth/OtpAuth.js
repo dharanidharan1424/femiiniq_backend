@@ -17,23 +17,31 @@ router.post("/send-otp", async (req, res) => {
     try {
         const formattedMobile = "91" + mobile;
 
-        console.log(`Sending OTP to: ${formattedMobile}`);
+        console.log(`[OTP] Sending to: ${formattedMobile} (Original input: ${mobile})`);
 
         // Using basic MSG91 OTP API without widget_id - will use default template
         const url = `https://control.msg91.com/api/v5/otp?mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}`;
 
         const response = await axios.post(url);
 
-        console.log("MSG91 Response:", response.data);
+        console.log("[OTP] MSG91 Response:", JSON.stringify(response.data, null, 2));
+        console.log(`[OTP] Request ID: ${response.data.request_id} - Check this in MSG91 dashboard for delivery status`);
 
         if (response.data.type === "success") {
-            res.json({ success: true, message: "OTP Sent Successfully" });
+            res.json({
+                success: true,
+                message: "OTP Sent Successfully",
+                debug: {
+                    sentTo: formattedMobile,
+                    requestId: response.data.request_id
+                }
+            });
         } else {
             res.status(400).json({ success: false, message: response.data.message || "Failed to send OTP" });
         }
 
     } catch (error) {
-        console.error("MSG91 Send Error:", error.response?.data || error.message);
+        console.error("[OTP] MSG91 Send Error:", error.response?.data || error.message);
         res.status(500).json({ success: false, message: "Failed to send OTP via MSG91" });
     }
 });
