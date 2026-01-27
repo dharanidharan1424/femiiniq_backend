@@ -37,8 +37,7 @@ router.post("/", async (req, res) => {
     service_location: agentProfile.service_location || agentProfile.service_location_type,
     experience: agentProfile.experience,
     category: agentProfile.category,
-    latitude: agentProfile.latitude,
-    longitude: agentProfile.longitude,
+    // latitude and longitude columns don't exist in agents table - removed
     state: agentProfile.state,
     city: agentProfile.city,
     address_line1: agentProfile.address_line1 || agentProfile.addressLine1 || agentProfile.street,
