@@ -7,9 +7,7 @@ require("dotenv").config();
 
 // MSG91 Constants
 const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1"; // Provided by user
-const MSG91_TEMPLATE_ID = ""; // Helper ID or leave blank if using default
-// If user didn't provide template ID, we'll try without or use a standard one.
-// URL: https://control.msg91.com/api/v5/otp?template_id=&mobile=&authkey=
+const MSG91_WIDGET_ID = "366141685136363034343637"; // User provided Widget ID
 
 // 1. Send OTP
 router.post("/send-otp", async (req, res) => {
@@ -19,8 +17,10 @@ router.post("/send-otp", async (req, res) => {
 
     try {
         const formattedMobile = "91" + mobile; // Ensure country code
-        const url = `https://control.msg91.com/api/v5/otp?mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}`;
-        // Add template_id if available: &template_id=${MSG91_TEMPLATE_ID}
+
+        console.log(`Sending OTP to: ${formattedMobile} using WidgetID: ${MSG91_WIDGET_ID}`);
+
+        const url = `https://control.msg91.com/api/v5/otp?mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}&widget_id=${MSG91_WIDGET_ID}`;
 
         const response = await axios.post(url);
 
