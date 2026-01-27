@@ -15,8 +15,9 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Check if user exists in users table with a password (registered user)
     const [existingUsers] = await pool.query(
-      "SELECT * FROM mobile_user_auth WHERE email = ? LIMIT 1",
+      "SELECT * FROM users WHERE email = ? AND password IS NOT NULL LIMIT 1",
       [email]
     );
 
@@ -31,34 +32,46 @@ router.post("/", async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert user with minimal fields
-    const [userResult] = await pool.query(
-      "INSERT INTO users (fullname, email, dob, mobile, gender, name) VALUES (?, ?, ?, ?, ?, ?)",
-      [
-        fullname,
-        email,
-        dob || null,
-        phone || null,
-        gender || null,
-        name || null,
-      ]
-    );
-    const userId = userResult.insertId;
+    // Insert user directly into users table with password
+    // Check if guest user exists with this email (no password) to upgrade them?
+    // For simplicity, we just insert a new one or update if exists but no password? 
+    // Let's keep it simple: strict registration
+
+    // First check if email exists at all (guest or not)
+    const [emailCheck] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
+
+    let userId;
+    let user;
+
+    if (emailCheck.length > 0) {
+      // User exists (likely guest), update password and details
+      userId = emailCheck[0].id;
+      await pool.query(
+        "UPDATE users SET fullname = ?, dob = ?, mobile = ?, gender = ?, name = ?, password = ? WHERE id = ?",
+        [fullname, dob || null, phone || null, gender || null, name || null, passwordHash, userId]
+      );
+    } else {
+      // New user
+      const [userResult] = await pool.query(
+        "INSERT INTO users (fullname, email, dob, mobile, gender, name, password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          fullname,
+          email,
+          dob || null,
+          phone || null,
+          gender || null,
+          name || null,
+          passwordHash
+        ]
+      );
+      userId = userResult.insertId;
+    }
 
     // Generate unique ID with 10-digit padding
     const uniqueId = `FC${String(userId).padStart(10, "0")}`;
+    await pool.query("UPDATE users SET unique_id = ? WHERE id = ?", [uniqueId, userId]);
 
-    // Update user with unique_id and password hash
-    await pool.query(
-      "UPDATE users SET unique_id = ?, password = ? WHERE id = ?",
-      [uniqueId, passwordHash, userId]
-    );
-
-    // Insert into auth table
-    await pool.query(
-      "INSERT INTO mobile_user_auth (user_id, email, password_hash, status) VALUES (?, ?, ?, ?)",
-      [userId, email, passwordHash, "active"]
-    );
+    // Cleanup: NO mobile_user_auth insertion
 
     // Generate JWT token
     const payload = { userId, email };
@@ -67,11 +80,11 @@ router.post("/", async (req, res) => {
     });
 
     // Fetch full user details minus password
-    const [users] = await pool.query(
+    const [userRows] = await pool.query(
       "SELECT id, unique_id, fullname, email, dob, mobile, gender, name, created_at FROM users WHERE id = ? LIMIT 1",
       [userId]
     );
-    const user = users[0];
+    user = userRows[0]; // Reuse variable
 
     return res.status(201).json({
       status: "success",

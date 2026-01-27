@@ -62,11 +62,7 @@ router.post("/", authenticateToken, async (req, res) => {
         .json({ status: "error", message: "User not found" });
     }
 
-    // If email updated, also update mobile_user_auth table
-    if (data.email) {
-      const updateAuthSql = `UPDATE mobile_user_auth SET email = ? WHERE user_id = ?`;
-      await connection.query(updateAuthSql, [data.email, userId]);
-    }
+
 
     await connection.commit();
 
@@ -88,8 +84,12 @@ router.post("/", authenticateToken, async (req, res) => {
       profile: rows[0],
     });
   } catch (error) {
-    await connection.rollback();
-    connection.release();
+    if (connection) {
+      // Only rollback if transaction started, but tricky to know? 
+      // Just catch potential rollback error
+      try { await connection.rollback(); } catch (e) { }
+      connection.release();
+    }
     console.error("Profile update error:", error);
     res.status(500).json({ status: "error", message: "Profile update failed" });
   }

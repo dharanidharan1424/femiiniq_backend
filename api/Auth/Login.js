@@ -18,47 +18,29 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    // 1. Try mobile_user_auth first (active only)
-    let [userAuthRows] = await pool.query(
-      "SELECT * FROM mobile_user_auth WHERE email = ? AND status = 'active' LIMIT 1",
+    // 1. Try users table only
+    let [usersRows] = await pool.query(
+      "SELECT * FROM users WHERE email = ? AND password IS NOT NULL LIMIT 1",
       [email]
     );
-    console.log("mobile_user_auth query result:", userAuthRows.length);
+    console.log("users table query result:", usersRows.length);
 
-    let userId, passwordHash, userEmail;
-    if (userAuthRows.length) {
-      // Mobile app user
-      const userAuth = userAuthRows[0];
-      userId = userAuth.user_id;
-      userEmail = userAuth.email;
-      passwordHash = userAuth.password_hash;
-      console.log("User found in mobile_user_auth:", userId, userEmail);
-    } else {
-      // 2. Try users table (for web users; must have password set)
-      let [usersRows] = await pool.query(
-        "SELECT * FROM users WHERE email = ? AND password != '' LIMIT 1",
-        [email]
-      );
-      console.log("users table query result:", usersRows.length);
-
-      if (!usersRows.length) {
-        console.log("User not found in either mobile_user_auth or users table");
-        return res
-          .status(401)
-          .json({ status: "error", message: "Invalid email or password" });
-      }
-      const userRow = usersRows[0];
-      userId = userRow.id;
-      userEmail = userRow.email;
-      passwordHash = userRow.password;
-      console.log(
-        "User found in users table:",
-        userId,
-        userEmail,
-        passwordHash,
-        password
-      );
+    if (!usersRows.length) {
+      console.log("User not found in users table");
+      return res
+        .status(401)
+        .json({ status: "error", message: "Invalid email or password" });
     }
+    const userRow = usersRows[0];
+    let userId = userRow.id;
+    let userEmail = userRow.email;
+    let passwordHash = userRow.password;
+    console.log(
+      "User found in users table:",
+      userId,
+      userEmail,
+      "Password hash length:", passwordHash ? passwordHash.length : 0
+    );
 
     let normalizedHash = passwordHash.startsWith("$2y$")
       ? "$2a$" + passwordHash.slice(4)
