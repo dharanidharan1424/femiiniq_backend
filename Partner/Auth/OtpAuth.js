@@ -7,7 +7,7 @@ require("dotenv").config();
 
 // MSG91 Constants
 const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1"; // Provided by user
-const MSG91_TEMPLATE_ID = "672db945d6fc056b0c3098f2"; // Helper ID or leave blank if using default
+const MSG91_TEMPLATE_ID = ""; // Helper ID or leave blank if using default
 // If user didn't provide template ID, we'll try without or use a standard one.
 // URL: https://control.msg91.com/api/v5/otp?template_id=&mobile=&authkey=
 
