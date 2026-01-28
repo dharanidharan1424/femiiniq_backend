@@ -124,19 +124,17 @@ router.post("/service", async (req, res) => {
     if (
       !category_id ||
       !name ||
-      !image ||
       !price ||
       !original_price ||
       !staff_id ||
       !duration ||
       !description ||
       !procedure_desc ||
-      !agent_id ||
-      !agent_name
+      !agent_id
     ) {
       return res
         .status(400)
-        .json({ status: "error", message: "Missing required fields." });
+        .json({ status: "error", message: "Missing required fields (id, cat, name, price, staff, duration, desc, proc)." });
     }
 
     // Generate ID manually since AUTO_INCREMENT is missing/failing
@@ -153,7 +151,7 @@ router.post("/service", async (req, res) => {
       nextId,
       category_id,
       name,
-      image,
+      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
       price,
       original_price,
       staff_id,
@@ -161,7 +159,7 @@ router.post("/service", async (req, res) => {
       description,
       procedure_desc,
       agent_id,
-      agent_name,
+      agent_name || 'Partner',
     ];
 
     // Assuming mysql2 with promise-ready pool/connection

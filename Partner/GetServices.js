@@ -18,8 +18,8 @@ router.get("/service/:agentId", async (req, res) => {
     );
     if (!results || results.length === 0) {
       return res
-        .status(404)
-        .json({ status: "error", message: "Agent not found" });
+        .status(200)
+        .json({ status: "success", services: [] });
     }
     res.json({ status: "success", services: results });
   } catch (error) {
@@ -46,9 +46,9 @@ router.get("/package/:agentId", async (req, res) => {
     );
 
     if (!results || results.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No packages found for this agent.",
+      return res.status(200).json({
+        status: "success",
+        packages: [],
       });
     }
 
