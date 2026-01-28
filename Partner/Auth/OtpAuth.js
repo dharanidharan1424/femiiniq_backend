@@ -90,7 +90,7 @@ router.post("/verify-otp", async (req, res) => {
             // --- Login / Register Logic (Copied from LoginMobile.js) ---
 
             // 1. Check if agent exists
-            const [agents] = await pool.query("SELECT * FROM agents WHERE mobile = ? LIMIT 1", [mobile]);
+            const [agents] = await pool.query("SELECT * FROM agents WHERE mobile = ? LIMIT 1", [formattedMobile]);
             let agent = agents[0];
             let isNewUser = false;
 
@@ -103,7 +103,7 @@ router.post("/verify-otp", async (req, res) => {
 
                 const [result] = await pool.query(
                     "INSERT INTO agents (mobile, email, full_name, name, status, agent_id, password) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [mobile, placeholderEmail, placeholderName, placeholderName, "Pending Onboarding", tempAgentId, "mobile-login"]
+                    [formattedMobile, placeholderEmail, placeholderName, placeholderName, "Pending Onboarding", tempAgentId, "mobile-login"]
                 );
                 const newAgentId = result.insertId;
                 const uniqueId = `FP${String(newAgentId).padStart(6, "0")}`;
