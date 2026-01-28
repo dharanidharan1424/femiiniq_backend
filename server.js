@@ -101,7 +101,6 @@ app.use("/partner/register", partnerRegisterRouter);
 app.use("/partner/login", partnerLoginRouter);
 app.use("/partner/login-with-mobile", partnerLoginMobileRouter);
 app.use("/partner/otp", partnerOtpRouter);
-app.use("/partner/widget-login", widgetLoginRouter);
 app.use("/partner/update", partnerUpdateRouter);
 app.use("/partner/status", statusUpdateRouter);
 app.use("/partner/order", agentOrderRouter);
