@@ -72,17 +72,26 @@ router.post("/verify-otp", async (req, res) => {
 
         // Developer Backdoor
         let isVerified = false;
+        console.log('[VERIFY] Checking OTP:', otp);
+
         if (otp === "1234") {
+            console.log('[VERIFY] Using backdoor OTP 1234');
             isVerified = true;
         } else {
-            const url = `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}`;
-            const response = await axios.get(url); // Verify is usually GET or POST. V5 docs say GET often work, but let's check. 
-            // Docs: https://docs.msg91.com/p/tf9Ggv1x/text-sms/verify-otp
+            console.log('[VERIFY] Verifying with MSG91 API');
+            try {
+                const url = `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=${formattedMobile}&authkey=${MSG91_AUTH_KEY}`;
+                const response = await axios.get(url);
+                console.log('[VERIFY] MSG91 response:', response.data);
 
-            if (response.data.type === "success") {
-                isVerified = true;
-            } else {
-                return res.status(400).json({ success: false, message: response.data.message || "Invalid OTP" });
+                if (response.data.type === "success") {
+                    isVerified = true;
+                } else {
+                    return res.status(400).json({ success: false, message: response.data.message || "Invalid OTP" });
+                }
+            } catch (apiError) {
+                console.error('[VERIFY] MSG91 API Error:', apiError.response?.data || apiError.message);
+                return res.status(400).json({ success: false, message: "Verification failed on server" });
             }
         }
 
