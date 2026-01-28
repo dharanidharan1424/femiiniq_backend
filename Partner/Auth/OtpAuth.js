@@ -7,7 +7,7 @@ require("dotenv").config();
 
 // MSG91 Constants
 const MSG91_AUTH_KEY = "453529ARqzMtfwq690314baP1";
-const DEV_MODE = false; // Real SMS delivery enabled
+const DEV_MODE = false; // Real SMS only - no dev mode
 
 // 1. Send OTP
 router.post("/send-otp", async (req, res) => {
