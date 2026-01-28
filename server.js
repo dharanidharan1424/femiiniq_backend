@@ -269,6 +269,12 @@ async function runAutoMigration() {
         console.log("   ✅ Added 'salon_name' column.");
       } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: salon_name check skipped."); }
 
+      // Ensure service_location is VARCHAR(50)
+      try {
+        await connection.query("ALTER TABLE agents MODIFY COLUMN service_location VARCHAR(50) DEFAULT 'both'");
+        console.log("   ✅ Ensured 'service_location' is VARCHAR.");
+      } catch (e) { console.log("   Info: service_location modify skipped."); }
+
       connection.release();
     } catch (e) {
       console.log("   ⚠️ Column check execution error:", e.message);
