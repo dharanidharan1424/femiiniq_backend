@@ -150,10 +150,12 @@ app.use("/real-data", bookingsRouter);
 // <---------------------------------------------------------NEW BACKEND ARCHITECTURE----------------------------------------------------------->
 const newAuthRouter = require("./src/modules/auth/auth.routes");
 const newOnboardingRouter = require("./src/modules/onboarding/onboarding.routes");
+const newAgentRouter = require("./src/modules/agent/agent.routes");
 
 // Mount new routes
 app.use("/api/v2/auth", newAuthRouter);
 app.use("/api/v2/onboarding", newOnboardingRouter);
+app.use("/api/v2/agent", newAgentRouter);
 
 
 // Start server
