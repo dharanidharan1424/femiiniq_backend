@@ -147,6 +147,15 @@ const bookingsRouter = require("./Real-data/Bookings/bookings.js");
 
 app.use("/real-data", bookingsRouter);
 
+// <---------------------------------------------------------NEW BACKEND ARCHITECTURE----------------------------------------------------------->
+const newAuthRouter = require("./src/modules/auth/auth.routes");
+const newOnboardingRouter = require("./src/modules/onboarding/onboarding.routes");
+
+// Mount new routes
+app.use("/api/v2/auth", newAuthRouter);
+app.use("/api/v2/onboarding", newOnboardingRouter);
+
+
 // Start server
 // Start server
 const PORT = process.env.PORT || 3000;
