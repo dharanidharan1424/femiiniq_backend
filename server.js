@@ -94,12 +94,14 @@ const providerSettingsRouter = require("./Partner/provider-settings.js");
 const availabilitySlotsRouter = require("./Partner/availability-slots.js");
 const getAvailableSlotsRouter = require("./api/get-available-slots.js");
 const partnerDeleteAccountRouter = require("./Partner/delete-account.js");
+const widgetLoginRouter = require("./Partner/Auth/WidgetLogin.js");
 
 app.use("/agent", getAgentsRouter);
 app.use("/partner/register", partnerRegisterRouter);
 app.use("/partner/login", partnerLoginRouter);
 app.use("/partner/login-with-mobile", partnerLoginMobileRouter);
 app.use("/partner/otp", partnerOtpRouter);
+app.use("/partner/widget-login", widgetLoginRouter);
 app.use("/partner/update", partnerUpdateRouter);
 app.use("/partner/status", statusUpdateRouter);
 app.use("/partner/order", agentOrderRouter);
