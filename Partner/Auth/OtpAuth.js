@@ -260,22 +260,23 @@ router.post("/widget-login", async (req, res) => {
         const formattedMobile = "91" + mobile;
         console.log('[WIDGET-LOGIN] Processing login for:', formattedMobile);
 
-        // 1. Check if agent exists
+        // 1. Check if agent exists by mobile
         const [agents] = await pool.query("SELECT * FROM agents WHERE mobile = ? LIMIT 1", [formattedMobile]);
         let agent = agents[0];
         let isNewUser = false;
 
+        console.log('[WIDGET-LOGIN] Found existing user:', !!agent);
+
         if (!agent) {
-            // 2. Create new agent
+            // 2. Create new agent without email (will be added during onboarding)
             console.log('[WIDGET-LOGIN] Creating new user');
             isNewUser = true;
             const tempAgentId = "TEMP-" + Date.now();
-            const placeholderEmail = `${mobile}@feminiq.placeholder`;
             const placeholderName = `Partner ${mobile.slice(-4)}`;
 
             const [result] = await pool.query(
-                "INSERT INTO agents (mobile, email, full_name, name, status, agent_id, password) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [formattedMobile, placeholderEmail, placeholderName, placeholderName, "Pending Onboarding", tempAgentId, "mobile-login"]
+                "INSERT INTO agents (mobile, full_name, name, status, agent_id, password) VALUES (?, ?, ?, ?, ?, ?)",
+                [formattedMobile, placeholderName, placeholderName, "Pending Onboarding", tempAgentId, "mobile-login"]
             );
             const newAgentId = result.insertId;
             const uniqueId = `FP${String(newAgentId).padStart(6, "0")}`;
@@ -284,6 +285,9 @@ router.post("/widget-login", async (req, res) => {
             // Fetch new agent
             const [newAgents] = await pool.query("SELECT * FROM agents WHERE id = ? LIMIT 1", [newAgentId]);
             agent = newAgents[0];
+            console.log('[WIDGET-LOGIN] New user created:', agent.agent_id);
+        } else {
+            console.log('[WIDGET-LOGIN] Existing user found:', agent.agent_id);
         }
 
         // 3. Generate Token
