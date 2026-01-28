@@ -247,6 +247,33 @@ async function runAutoMigration() {
     `);
     console.log("   ✅ 'booking_slots' table ready.");
 
+    // 6. Ensure Agents Table Columns (Self-Healing)
+    console.log("-> Checking 'agents' table columns...");
+    try {
+      const connection = await pool.getConnection();
+      // Check/Add partner_type
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN partner_type ENUM('solo', 'studio') DEFAULT 'solo'");
+        console.log("   ✅ Added 'partner_type' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: partner_type check skipped."); }
+
+      // Check/Add owner_name
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN owner_name VARCHAR(255)");
+        console.log("   ✅ Added 'owner_name' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: owner_name check skipped."); }
+
+      // Check/Add salon_name
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN salon_name VARCHAR(255)");
+        console.log("   ✅ Added 'salon_name' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: salon_name check skipped."); }
+
+      connection.release();
+    } catch (e) {
+      console.log("   ⚠️ Column check execution error:", e.message);
+    }
+
     console.log("✨ Auto-Migration Complete.");
   } catch (error) {
     console.error("⚠️ Auto-Migration Warning:", error.message);

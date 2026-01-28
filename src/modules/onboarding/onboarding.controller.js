@@ -30,7 +30,10 @@ exports.updatePersonalInfo = async (req, res) => {
         if (full_name) { updates.push("full_name = ?"); values.push(full_name); }
         if (dob) { updates.push("dob = ?"); values.push(dob); }
         if (gender) { updates.push("gender = ?"); values.push(gender); }
-        if (experience_years) { updates.push("experience_years = ?"); values.push(experience_years); }
+
+        // Map experience_years to experience column
+        if (experience_years) { updates.push("experience = ?"); values.push(experience_years); }
+
         if (owner_name) { updates.push("owner_name = ?"); values.push(owner_name); }
         if (salon_name) { updates.push("salon_name = ?"); values.push(salon_name); }
 
@@ -66,7 +69,7 @@ exports.updateServiceLocation = async (req, res) => {
             else service_location = 'both';
         }
 
-        if (travel_charge) travel_charge_per_km = travel_charge;
+        if (travel_charge_per_km) travel_charge = travel_charge_per_km;
 
         const updates = ["service_location = ?"];
         const values = [service_location];
@@ -75,9 +78,10 @@ exports.updateServiceLocation = async (req, res) => {
             updates.push("travel_radius = ?");
             values.push(travel_radius);
         }
-        if (travel_charge_per_km !== undefined) {
-            updates.push("travel_charge_per_km = ?");
-            values.push(travel_charge_per_km);
+        // Map to travel_charge column
+        if (travel_charge !== undefined) {
+            updates.push("travel_charge = ?");
+            values.push(travel_charge);
         }
 
         values.push(req.user.agent_id);
