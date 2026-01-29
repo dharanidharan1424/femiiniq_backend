@@ -174,7 +174,7 @@ async function runAutoMigration() {
       await pool.query(`
                 ALTER TABLE agents 
                 MODIFY COLUMN status 
-                ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding') 
+                ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding', 'Pending Verification', 'Pending Approval') 
                 NOT NULL DEFAULT 'Available'
             `);
       console.log("   ✅ Status column updated.");
