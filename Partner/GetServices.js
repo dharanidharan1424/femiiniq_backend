@@ -11,11 +11,16 @@ router.get("/service/:agentId", async (req, res) => {
       .json({ status: "error", message: "Missing agentId" });
   }
   try {
-    // This assumes you are using a promise-enabled mysql2 connection
+    // Fetch from new table 'agent_services'
+    // We map 'service_name' to 'name' for frontend compatibility
     const [results] = await db.query(
-      "SELECT * FROM service_type WHERE agent_id = ?",
+      "SELECT id, service_name as name, price, duration, description, category_id, image FROM agent_services WHERE agent_id = ?",
       [agentId]
     );
+
+    // Also fetch categories to map category_id to name if needed? 
+    // For now, let's just return what we have. Frontend might need category name.
+
     if (!results || results.length === 0) {
       return res
         .status(200)
@@ -39,9 +44,8 @@ router.get("/package/:agentId", async (req, res) => {
   }
 
   try {
-    // ✅ Fetch all service packages for the given agent
     const [results] = await db.query(
-      "SELECT * FROM service_package WHERE agent_id = ?",
+      "SELECT id, package_name as name, total_price as price, description, image, services FROM agent_packages WHERE agent_id = ?",
       [agentId]
     );
 
@@ -52,7 +56,7 @@ router.get("/package/:agentId", async (req, res) => {
       });
     }
 
-    // ✅ Send all results, not just the first one
+    // ✅ Send all results
     return res.status(200).json({
       status: "success",
       packages: results,

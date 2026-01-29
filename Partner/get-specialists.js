@@ -14,8 +14,9 @@ router.get("/:shop_id", async (req, res) => {
     }
 
     try {
+        // Updated to use 'specialists' table and 'agent_id'
         const [specialists] = await db.query(
-            "SELECT * FROM staffs WHERE shop_id = ?",
+            "SELECT * FROM specialists WHERE agent_id = ?",
             [shop_id]
         );
 

@@ -275,6 +275,12 @@ async function runAutoMigration() {
         console.log("   ✅ Ensured 'service_location' is VARCHAR.");
       } catch (e) { console.log("   Info: service_location modify skipped."); }
 
+      // Check/Add services column to agent_packages
+      try {
+        await connection.query("ALTER TABLE agent_packages ADD COLUMN services TEXT");
+        console.log("   ✅ Added 'services' column to agent_packages.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME' && e.code !== 'ER_NO_SUCH_TABLE') console.log("   Info: agent_packages services check skipped."); }
+
       connection.release();
     } catch (e) {
       console.log("   ⚠️ Column check execution error:", e.message);

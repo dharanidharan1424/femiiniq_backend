@@ -121,51 +121,35 @@ router.post("/service", async (req, res) => {
       agent_name,
     } = req.body;
 
-    if (
-      !category_id ||
-      !name ||
-      !price ||
-      !original_price ||
-      !staff_id ||
-      !duration ||
-      !description ||
-      !procedure_desc ||
-      !agent_id
-    ) {
+    if (!name || !price || !duration || !agent_id) {
       return res
         .status(400)
-        .json({ status: "error", message: "Missing required fields (id, cat, name, price, staff, duration, desc, proc)." });
+        .json({ status: "error", message: "Missing required fields (name, price, duration, agent_id)." });
     }
 
-    // Generate ID manually since AUTO_INCREMENT is missing/failing
-    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM service_type");
-    const nextId = (maxIdResult[0].maxId || 0) + 1;
-
+    // Insert into 'agent_services' (New Table)
     const query = `
-      INSERT INTO service_type
-      (id, category_id, name, image, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO agent_services
+      (agent_id, category_id, service_name, price, duration, description, image, procedure_desc)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    // Map 'name' to 'service_name'
     const values = [
-      nextId,
-      category_id,
-      name,
-      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
-      price,
-      original_price,
-      staff_id,
-      duration,
-      description,
-      procedure_desc,
       agent_id,
-      agent_name || 'Partner',
+      category_id || 1,
+      name,
+      price,
+      duration,
+      description || `${name} - Professional service`,
+      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
+      procedure_desc || 'Standard procedure'
     ];
 
     // Assuming mysql2 with promise-ready pool/connection
     const [result] = await db.query(query, values);
 
-    return res.status(201).json({ status: "success", id: result.insertId });
+    return res.status(201).json({ status: "success", id: result.insertId, message: "Service added successfully" });
   } catch (error) {
     console.error("API Error:", error);
     return res.status(500).json({ status: "error", message: error.message });
@@ -274,62 +258,37 @@ router.post("/package", async (req, res) => {
       price,
       description,
       agent_id,
-      agent_name,
-      staff_id,
       image,
-      booked,
-      original_price,
       duration,
-      process_desc,
-      services,
+      services, // stringified array of names
     } = req.body;
 
-    if (
-      !category_id ||
-      !name ||
-      !price ||
-      !description ||
-      !agent_id ||
-      !agent_name ||
-      !staff_id ||
-      !image ||
-      original_price === undefined ||
-      !duration ||
-      !process_desc
-    ) {
+    if (!name || !price || !agent_id) {
       return res
         .status(400)
         .json({ status: "error", message: "Missing required fields." });
     }
 
-    // Generate ID manually
-    const [maxIdResult] = await db.query("SELECT MAX(id) as maxId FROM service_package");
-    const nextId = (maxIdResult[0].maxId || 0) + 1;
-
+    // Insert into 'agent_packages'
+    // We will store 'services' JSON string in a 'services' column if it exists, 
+    // or just rely on description. I'll include it in the query.
+    // Ensure you added 'services' column to agent_packages in migration if it's missing.
     const query = `
-  INSERT INTO service_package
-  (id, category_id, name, price, description, agent_id, agent_name, staff_id, image, booked, original_price, duration, process_desc, services)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`;
+      INSERT INTO agent_packages
+      (agent_id, package_name, total_price, description, image, duration, services)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
 
     const values = [
-      nextId,
-      category_id,
+      agent_id,
       name,
       price,
-      description,
-      agent_id,
-      agent_name,
-      staff_id,
-      image,
-      booked || 0,
-      original_price,
-      duration,
-      process_desc,
-      services || "[]", // <--- ADD services column here, default to "[]"
+      description || `Package: ${name}`,
+      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
+      duration || '60',
+      services || "[]"
     ];
 
-    // Assuming you have mysql2's promise pool or connection available as db
     const [result] = await db.query(query, values);
 
     res.status(201).json({
@@ -339,6 +298,18 @@ router.post("/package", async (req, res) => {
     });
   } catch (error) {
     console.error("API Error:", error);
+    // Silent fail on 'services' column missing to at least save the package
+    if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes("Unknown column 'services'")) {
+      try {
+        // Retry without services column
+        const fallbackQuery = `INSERT INTO agent_packages (agent_id, package_name, total_price, description, image, duration) VALUES (?, ?, ?, ?, ?, ?)`;
+        const fallbackValues = [agent_id, name, price, description, image, duration || '60'];
+        const [fbResult] = await db.query(fallbackQuery, fallbackValues);
+        return res.status(201).json({ status: "success", id: fbResult.insertId, message: "Package saved (services list excluded)" });
+      } catch (e) {
+        return res.status(500).json({ status: "error", message: e.message });
+      }
+    }
     return res.status(500).json({ status: "error", message: error.message });
   }
 });
