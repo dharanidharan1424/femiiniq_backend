@@ -169,20 +169,18 @@ exports.addPackages = async (req, res) => {
         if (!Array.isArray(packages)) return res.status(400).json({ error: "packages must be an array" });
 
         for (const pkg of packages) {
-            const [result] = await pool.query(
-                `INSERT INTO agent_packages (agent_id, package_name, total_price, description) VALUES (?, ?, ?, ?)`,
-                [agent_id, pkg.package_name, pkg.total_price, pkg.description]
-            );
-            const packageId = result.insertId;
+            // Map price to total_price (frontend sends price)
+            const totalPrice = pkg.total_price || pkg.price || 0;
 
-            if (pkg.items && Array.isArray(pkg.items)) {
-                for (const serviceId of pkg.items) {
-                    await pool.query(
-                        `INSERT INTO package_items (package_id, service_id) VALUES (?, ?)`,
-                        [packageId, serviceId]
-                    );
-                }
-            }
+            // Handle services list (store as JSON string)
+            // Frontend sends 'service_names' or 'services'
+            const servicesList = pkg.service_names || pkg.services || [];
+            const servicesJson = JSON.stringify(servicesList);
+
+            await pool.query(
+                `INSERT INTO agent_packages (agent_id, package_name, total_price, description, services) VALUES (?, ?, ?, ?, ?)`,
+                [agent_id, pkg.package_name, totalPrice, pkg.description || "", servicesJson]
+            );
         }
         res.json({ success: true, message: "Packages created" });
     } catch (error) {
