@@ -275,6 +275,12 @@ async function runAutoMigration() {
         console.log("   ✅ Ensured 'service_location' is VARCHAR.");
       } catch (e) { console.log("   Info: service_location modify skipped."); }
 
+      // Check/Add refresh_token
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN refresh_token TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'refresh_token' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: refresh_token check skipped."); }
+
       connection.release();
     } catch (e) {
       console.log("   ⚠️ Column check execution error:", e.message);
