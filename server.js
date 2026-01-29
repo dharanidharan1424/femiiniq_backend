@@ -174,7 +174,7 @@ async function runAutoMigration() {
       await pool.query(`
                 ALTER TABLE agents 
                 MODIFY COLUMN status 
-                ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding', 'Pending Verification', 'Pending Approval') 
+                ENUM('Available', 'Busy', 'Offline', 'Unavailable', 'Not Available', 'Pending Onboarding') 
                 NOT NULL DEFAULT 'Available'
             `);
       console.log("   ✅ Status column updated.");
@@ -274,12 +274,6 @@ async function runAutoMigration() {
         await connection.query("ALTER TABLE agents MODIFY COLUMN service_location VARCHAR(50) DEFAULT 'both'");
         console.log("   ✅ Ensured 'service_location' is VARCHAR.");
       } catch (e) { console.log("   Info: service_location modify skipped."); }
-
-      // Check/Add services column to agent_packages
-      try {
-        await connection.query("ALTER TABLE agent_packages ADD COLUMN services TEXT");
-        console.log("   ✅ Added 'services' column to agent_packages.");
-      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME' && e.code !== 'ER_NO_SUCH_TABLE') console.log("   Info: agent_packages services check skipped."); }
 
       connection.release();
     } catch (e) {

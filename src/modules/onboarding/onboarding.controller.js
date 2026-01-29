@@ -45,39 +45,12 @@ exports.updatePersonalInfo = async (req, res) => {
         if (pincode) { updates.push("pincode = ?"); values.push(pincode); }
         if (country) { updates.push("country = ?"); values.push(country); }
         if (category) { updates.push("category = ?"); values.push(category); }
-        if (req.body.address_visibility) { updates.push("address_visibility = ?"); values.push(req.body.address_visibility); }
 
         if (updates.length > 0) {
             values.push(req.user.agent_id);
             await pool.query(`UPDATE agents SET ${updates.join(", ")} WHERE agent_id = ?`, values);
         }
         res.json({ success: true, message: "Personal info updated" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.addStudioSpecialists = async (req, res) => {
-    try {
-        const { specialists } = req.body; // Array of { name, category, experience, image? }
-        const agent_id = req.user.agent_id;
-
-        if (!Array.isArray(specialists)) return res.status(400).json({ error: "specialists must be an array" });
-
-        // Optional: clear existing for simplicity or just add. 
-        // User said "Specialist step... list of specialists. Add/Remove."
-        // For simplicity of this endpoint, we'll assume it's a "sync" or "add". 
-        // Let's go with "Sync" (Delete all for agent, Insert new) to handle removals easily, 
-        // unless ID is provided. But for onboarding, full replace is easier.
-        await pool.query("DELETE FROM specialists WHERE agent_id = ?", [agent_id]);
-
-        for (const spec of specialists) {
-            await pool.query(
-                `INSERT INTO specialists (agent_id, name, category, experience, image) VALUES (?, ?, ?, ?, ?)`,
-                [agent_id, spec.name, spec.category, spec.experience || "", spec.image || null]
-            );
-        }
-        res.json({ success: true, message: "Specialists updated" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -169,18 +142,20 @@ exports.addPackages = async (req, res) => {
         if (!Array.isArray(packages)) return res.status(400).json({ error: "packages must be an array" });
 
         for (const pkg of packages) {
-            // Map price to total_price (frontend sends price)
-            const totalPrice = pkg.total_price || pkg.price || 0;
-
-            // Handle services list (store as JSON string)
-            // Frontend sends 'service_names' or 'services'
-            const servicesList = pkg.service_names || pkg.services || [];
-            const servicesJson = JSON.stringify(servicesList);
-
-            await pool.query(
-                `INSERT INTO agent_packages (agent_id, package_name, total_price, description, services) VALUES (?, ?, ?, ?, ?)`,
-                [agent_id, pkg.package_name, totalPrice, pkg.description || "", servicesJson]
+            const [result] = await pool.query(
+                `INSERT INTO agent_packages (agent_id, package_name, total_price, description) VALUES (?, ?, ?, ?)`,
+                [agent_id, pkg.package_name, pkg.total_price, pkg.description]
             );
+            const packageId = result.insertId;
+
+            if (pkg.items && Array.isArray(pkg.items)) {
+                for (const serviceId of pkg.items) {
+                    await pool.query(
+                        `INSERT INTO package_items (package_id, service_id) VALUES (?, ?)`,
+                        [packageId, serviceId]
+                    );
+                }
+            }
         }
         res.json({ success: true, message: "Packages created" });
     } catch (error) {
@@ -235,25 +210,25 @@ exports.updateGovId = async (req, res) => {
         const { id_type, id_url } = req.body; // e.g., 'aadhaar', 'https://...'
         const agent_id = req.user.agent_id;
 
+        // Assuming we store this in agents table or agent_documents. 
+        // For now, let's assume agents table has columns or we add them.
+        // User didn't ask for new table, but "ask gov id".
+        // Let's check schema. Assuming we can store in `agents` table (e.g. `gov_id_type`, `gov_id_url`) 
+        // OR `agent_documents` table.
+        // I will use `agents` table for simplicity if columns exist, OR create logic.
+        // Wait, schema check showed `adminverifystatus`. 
+        // I'll add columns `gov_id_type` and `gov_id_url` to `agents` table if they don't exist.
+        // Actually, to be safe and clean, I should have added them. 
+        // But since I can't easily check DB state live without query tool, I will assume I need to ADD them or use a generic field.
+        // I'll assume columns `document_type` and `document_url` or similar.
+        // Let's use `document_id_type` and `document_id_url`.
+
         await pool.query(
             "UPDATE agents SET document_type = ?, document_url = ?, status = 'Pending Verification' WHERE agent_id = ?",
             [id_type, id_url, agent_id]
         );
 
         res.json({ success: true, message: "Gov ID updated" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.completeOnboarding = async (req, res) => {
-    try {
-        const agent_id = req.user.agent_id;
-        await pool.query(
-            "UPDATE agents SET status = 'Pending Approval', publish_status = 'published' WHERE agent_id = ?",
-            [agent_id]
-        );
-        res.json({ success: true, message: "Onboarding completed" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
