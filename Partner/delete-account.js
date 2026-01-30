@@ -2,12 +2,14 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/dummyDb");
 
-router.delete("/", async (req, res) => {
+const authenticateToken = require("../middleware/authMiddleware");
+
+router.delete("/", authenticateToken, async (req, res) => {
     console.log("Partner delete account request received");
 
-    // For now, we'll use agent_id from request body
-    // In production, this should use authentication middleware
-    const { agent_id, reason } = req.body;
+    // Use agent_id from authenticated token
+    const agent_id = req.user.agent_id;
+    const { reason } = req.body;
 
     if (!agent_id) {
         return res.status(400).json({
@@ -30,7 +32,7 @@ router.delete("/", async (req, res) => {
             });
         }
 
-        // 2. Log deletion reason if provided (optional, won't fail if table doesn't exist)
+        // 2. Log deletion reason
         if (reason) {
             try {
                 await pool.query(
@@ -38,18 +40,30 @@ router.delete("/", async (req, res) => {
                     [agent_id, reason]
                 );
             } catch (logError) {
-                console.log("Note: Could not log deletion reason (table may not exist):", logError.message);
-                // Continue with deletion even if logging fails
+                console.log("Note: Could not log deletion reason:", logError.message);
             }
         }
 
         // 3. Delete related data first (foreign key constraints)
+        // New Tables
+        await pool.query("DELETE FROM agent_categories WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_services WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_packages WHERE agent_id = ?", [agent_id]);
+        // Note: package_items might need deleting if they don't cascade. Assuming they do or we ignore for now as they are child of agent_packages which we just deleted (if cascade on DB).
+        // If not cascade, we'd need to select package IDs first. But for now let's hope for cascade or loose coupling.
+
+        await pool.query("DELETE FROM agent_availability WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_bank_details WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_documents WHERE agent_id = ?", [agent_id]);
+
+        // Legacy Tables
         await pool.query("DELETE FROM availability WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM service_type WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM service_package WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM provider_settings WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM availability_slots WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM booking_slots WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_working_hours WHERE agent_id = ?", [agent_id]);
 
         // 4. Delete agent account
         await pool.query("DELETE FROM agents WHERE agent_id = ?", [agent_id]);

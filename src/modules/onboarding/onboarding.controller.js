@@ -45,6 +45,7 @@ exports.updatePersonalInfo = async (req, res) => {
         if (pincode) { updates.push("pincode = ?"); values.push(pincode); }
         if (country) { updates.push("country = ?"); values.push(country); }
         if (category) { updates.push("category = ?"); values.push(category); }
+        if (req.body.image) { updates.push("image = ?"); values.push(req.body.image); }
 
         if (updates.length > 0) {
             values.push(req.user.agent_id);
