@@ -1,4 +1,4 @@
-const pool = require('../../config/database');
+const pool = require('../../config/db');
 
 exports.updateTravelSettings = async (req, res) => {
     try {
