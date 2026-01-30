@@ -19,7 +19,14 @@ router.delete("/", authenticateToken, async (req, res) => {
     }
 
     try {
-        // 1. Check for upcoming bookings
+        // 1. Get numeric ID of the agent for tables that use it
+        const [agentRow] = await pool.query(
+            "SELECT id FROM agents WHERE agent_id = ?",
+            [agent_id]
+        );
+        const numeric_id = agentRow[0]?.id;
+
+        // 2. Check for upcoming bookings
         const [bookings] = await pool.query(
             "SELECT id FROM bookings WHERE agent_id = ? AND status = 'Upcoming'",
             [agent_id]
@@ -32,26 +39,30 @@ router.delete("/", authenticateToken, async (req, res) => {
             });
         }
 
-        // 2. Log deletion reason
+        // 3. Log deletion reason
         if (reason) {
             try {
                 await pool.query(
-                    `INSERT INTO agent_deleted_accounts (agent_id, reason, deleted_at) VALUES (?, ?, NOW())`,
-                    [agent_id, reason]
+                    `INSERT INTO agent_deleted_accounts (agent_id, reason, extra_reason, deleted_at) VALUES (?, ?, ?, NOW())`,
+                    [agent_id, reason, ""]
                 );
             } catch (logError) {
                 console.log("Note: Could not log deletion reason:", logError.message);
             }
         }
 
-        // 3. Delete related data first (foreign key constraints)
+        // 4. Delete related data first (foreign key constraints)
         // New Tables
         await pool.query("DELETE FROM agent_categories WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_services WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_packages WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM specialists WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_images WHERE agent_id = ?", [agent_id]);
-        await pool.query("DELETE FROM agent_notes WHERE agent_id = ?", [agent_id]);
+
+        // agent_notes uses numeric ID
+        if (numeric_id) {
+            await pool.query("DELETE FROM agent_notes WHERE agent_id = ?", [numeric_id]);
+        }
 
         await pool.query("DELETE FROM agent_availability WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_bank_details WHERE agent_id = ?", [agent_id]);
