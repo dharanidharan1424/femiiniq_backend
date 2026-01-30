@@ -48,18 +48,32 @@ const getBankDetails = async (req, res) => {
 const getVerificationStatus = async (req, res) => {
     try {
         const agent_id = req.user.agent_id;
+        console.log(`[Verification] Fetching status for agent: ${agent_id}`);
 
         const [rows] = await pool.query(
-            "SELECT document_type, document_url, gst_number, adminverifystatus FROM agents WHERE agent_id = ?",
+            "SELECT * FROM agents WHERE agent_id = ?",
             [agent_id]
         );
 
         if (rows.length === 0) {
+            console.log(`[Verification] No agent found with id: ${agent_id}`);
             return res.json({ success: true, data: null, message: "No verification data found" });
         }
 
-        res.json({ success: true, data: rows[0] });
+        const agent = rows[0];
+        console.log(`[Verification] Agent data keys:`, Object.keys(agent));
+
+        // Use the columns we found, favoring underscores but falling back to non-underscores
+        const data = {
+            document_type: agent.document_type || agent.documenttype || "",
+            document_url: agent.document_url || agent.documenturl || "",
+            gst_number: agent.gst_number || agent.gstnumber || "",
+            adminverifystatus: agent.adminverifystatus || "pending"
+        };
+
+        res.json({ success: true, data });
     } catch (error) {
+        console.error(`[Verification] Error:`, error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
