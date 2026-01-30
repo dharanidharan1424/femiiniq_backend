@@ -45,7 +45,27 @@ const getBankDetails = async (req, res) => {
     }
 };
 
+const getVerificationStatus = async (req, res) => {
+    try {
+        const agent_id = req.user.agent_id;
+
+        const [rows] = await pool.query(
+            "SELECT document_type, document_url, gst_number, adminverifystatus FROM agents WHERE agent_id = ?",
+            [agent_id]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: true, data: null, message: "No verification data found" });
+        }
+
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
     toggleStatus,
-    getBankDetails
+    getBankDetails,
+    getVerificationStatus
 };
