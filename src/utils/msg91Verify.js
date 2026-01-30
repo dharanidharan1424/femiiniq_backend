@@ -8,13 +8,14 @@ const axios = require("axios");
  */
 const verifyMsg91Otp = async (mobile, accessToken) => {
     try {
-        console.log(`[MSG91] Verifying access token...`);
+        const formattedMobile = mobile.length === 10 ? `91${mobile}` : mobile;
+        console.log(`[MSG91] Verifying access token for: ${formattedMobile}`);
         const response = await axios.post(
             "https://control.msg91.com/api/v5/widget/verifyAccessToken",
             {
-                authkey: "453529ARqzMtfwq690314baP1", // User provided authkey
+                authkey: "453529TylsYiC16978c2c5P1", // Matches Frontend
                 "access-token": accessToken,
-                mobile: mobile // Sometimes required depending on widget config
+                mobile: formattedMobile
             },
             {
                 headers: {
