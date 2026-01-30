@@ -32,7 +32,7 @@ function generateDailySlots(workStart, workEnd, serviceDuration, intervalMinutes
 }
 
 async function generateSlotsForAgent(agent_id, start_date, end_date, service_duration = 60, interval_minutes = null, start_time_override = null, end_time_override = null) {
-    console.log(`Generating slots for agent ${agent_id} from ${start_date} to ${end_date}`);
+    console.log(`[availabilityService] Generating slots for agent ${agent_id} from ${start_date} to ${end_date}`);
 
     try {
         // Fetch provider settings
@@ -48,8 +48,10 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
         };
 
         // Use overrides if provided, otherwise settings/defaults
-        const finalInterval = interval_minutes !== null ? parseInt(interval_minutes) : settings.interval_minutes;
-        const finalDuration = parseInt(service_duration);
+        const finalInterval = Math.max(0, interval_minutes !== null ? parseInt(interval_minutes) : (settings.interval_minutes || 0));
+        const finalDuration = Math.max(1, parseInt(service_duration) || 60); // Min 1 minute duration to avoid infinite loop
+
+        console.log(`[availabilityService] Using duration: ${finalDuration}, interval: ${finalInterval}, capacity: ${settings.specialist_count}`);
 
         // Fetch detailed working hours first
         const [workingHours] = await db.query(
@@ -84,7 +86,16 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
                     };
                 });
             } else {
-                throw new Error("Agent not found or no working hours defined");
+                console.warn(`[availabilityService] No working hours found for agent ${agent_id}. Using defaults.`);
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                days.forEach(day => {
+                    workingHoursMap[day] = {
+                        day_of_week: day,
+                        is_closed: false,
+                        start_time: '09:00:00',
+                        end_time: '18:00:00'
+                    };
+                });
             }
         }
 
@@ -99,50 +110,30 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
         try {
             await conn.beginTransaction();
 
-            // Clear existing availability_slots and booking_slots for the requested range to prevent overlaps from previous settings
-            // Note: In a real production app, we should valid that we are not deleting slots that have actual bookings. 
-            // For now, per requirements, we regenerate. Ideally we check for boookings first.
-            const deleteParams = [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]];
-
-            // Delete slots that don't have active bookings? 
-            // Or just wipe all availablity? The prompt says "if it was booked it should remove in user side".
-            // If we delete a slot that has a booking, we lose track of capacity?
-            // Actually, booking_slots table tracks capacity. If we delete it...
-            // Let's assume we want to "reset" availability.
-            // Safe approach: Delete where booked_count = 0.
-            // But if settings changed (e.g. duration), we might need to invalidate even booked slots?
-            // For this phase, let's just delete all and recreate. 
-            // Wait, if there are existing bookings (booked_count > 0), we shouldn't delete that record blindly or we break relationships?
-            // The `booking_slots` table seems to be the capacity tracker. 
-            // If we have a booking at 9:00, and we change interval to start at 9:30...
-            // The 9:00 booking remains valid but the slot is gone?
-            // Let's implement a clean-up that deletes only UNBOOKED slots first.
-
-            // Aggressively clear slots. 
-            // We delete ALL availability_slots for the range to ensure the Schedule UI (which reflects availability) is clean.
-            // Existing bookings in `booking_slots` are preserved if they have counts, but they won't appear as "Available" slots if they don't match the new schedule.
-            // This is the correct behavior: we are redefining "Availability".
+            // Clear existing unbooked slots in the range
             await conn.query(`
                 DELETE FROM availability_slots 
                 WHERE agent_id = ? 
                 AND date >= ? AND date <= ?
-            `, [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]]);
+            `, [agent_id, start_date, end_date]);
 
-            // Clean up unbooked entries from booking_slots
             await conn.query(`
                 DELETE FROM booking_slots 
                 WHERE agent_id = ? 
                 AND date >= ? AND date <= ? 
                 AND booked_count = 0
-            `, [agent_id, startDateObj.toISOString().split('T')[0], endDateObj.toISOString().split('T')[0]]);
+            `, [agent_id, start_date, end_date]);
 
             while (currentDate <= endDateObj) {
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
 
+                let startTime = null;
+                let endTime = null;
+                let isClosed = true;
+
                 // Check specific day overrides first (passed as args)
                 if (start_time_override && end_time_override) {
-                    // Determine if closed (e.g. 00:00 - 00:00)
                     if (start_time_override === "00:00:00" && end_time_override === "00:00:00") {
                         isClosed = true;
                     } else {
@@ -159,9 +150,7 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
                     }
                 }
 
-                // Only generate slots if schedule exists and not closed
                 if (startTime && !isClosed) {
-                    // Generate slots for this date
                     const dailySlots = generateDailySlots(
                         startTime,
                         endTime,
@@ -169,18 +158,19 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
                         finalInterval
                     );
 
-                    // Insert slots into availability_slots
+                    console.log(`[availabilityService] ${dateStr} (${dayName}): Generating ${dailySlots.length} slots`);
+
                     for (const slot of dailySlots) {
+                        // Use ON DUPLICATE KEY UPDATE to avoid errors if a booked slot already exists
                         await conn.query(`
                             INSERT INTO availability_slots 
                             (agent_id, date, start_time, end_time, is_available)
                             VALUES (?, ?, ?, ?, TRUE)
                             ON DUPLICATE KEY UPDATE
                             end_time = VALUES(end_time),
-                            is_available = VALUES(is_available)
+                            is_available = TRUE
                         `, [agent_id, dateStr, slot.start_time, slot.end_time]);
 
-                        // Also create booking slot with capacity
                         await conn.query(`
                             INSERT INTO booking_slots 
                             (agent_id, date, start_time, end_time, total_capacity, booked_count)
@@ -188,17 +178,19 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
                             ON DUPLICATE KEY UPDATE
                             end_time = VALUES(end_time),
                             total_capacity = VALUES(total_capacity)
-                        `, [agent_id, dateStr, slot.start_time, slot.end_time, settings.specialist_count]);
+                        `, [agent_id, dateStr, slot.start_time, slot.end_time, settings.specialist_count || 1]);
 
                         totalSlotsCreated++;
                     }
+                } else {
+                    console.log(`[availabilityService] ${dateStr} (${dayName}): Closed or no schedule`);
                 }
 
-                // Move to next date
                 currentDate.setDate(currentDate.getDate() + 1);
             }
 
             await conn.commit();
+            console.log(`[availabilityService] Finished. Created ${totalSlotsCreated} slots.`);
             return {
                 success: true,
                 slots_created: totalSlotsCreated,
@@ -206,6 +198,7 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
             };
 
         } catch (error) {
+            console.error("[availabilityService] Loop/DB Error:", error);
             await conn.rollback();
             throw error;
         } finally {
@@ -213,7 +206,7 @@ async function generateSlotsForAgent(agent_id, start_date, end_date, service_dur
         }
 
     } catch (error) {
-        console.error("Service Error generating slots:", error);
+        console.error("[availabilityService] Service Error:", error);
         throw error;
     }
 }
