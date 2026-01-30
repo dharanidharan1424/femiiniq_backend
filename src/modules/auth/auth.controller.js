@@ -28,23 +28,29 @@ exports.verifyOtp = async (req, res) => {
     }
 
     try {
+        console.log(`[AUTH] Verifying OTP for mobile: ${mobile}`);
         // 1. Verify OTP
         const isValid = await verifyMsg91Otp(mobile, accessToken);
+        console.log(`[AUTH] OTP isValid: ${isValid}`);
         // For Development/Testing
         // if (accessToken === "test-token" && mobile === "9999999999") isValid = true; 
 
         if (!isValid) {
+            console.warn(`[AUTH] OTP Verification failed for ${mobile}`);
             return res.status(401).json({ error: "Invalid OTP or Access Token" });
         }
 
         // 2. Check/Create Agent
+        console.log(`[AUTH] Checking if agent exists for ${mobile}`);
         let [agents] = await pool.query("SELECT * FROM agents WHERE mobile = ?", [mobile]);
         let agent = agents[0];
         let isNew = false;
 
         if (!agent) {
+            console.log(`[AUTH] Agent not found, creating new agent for ${mobile}`);
             isNew = true;
             const newAgentId = await generateAgentId();
+            console.log(`[AUTH] Generated new agentId: ${newAgentId}`);
             await pool.query(
                 `INSERT INTO agents (agent_id, mobile, status, publish_status, adminverifystatus) 
                  VALUES (?, ?, 'Pending Onboarding', 'pending', 'pending')`,
@@ -54,12 +60,16 @@ exports.verifyOtp = async (req, res) => {
             agent = agents[0];
         }
 
+        console.log(`[AUTH] Agent identified: ${agent.agent_id}`);
         // 3. Generate Tokens
         const tokens = generateTokens(agent);
+        console.log(`[AUTH] Tokens generated for ${agent.agent_id}`);
 
         // 4. Store Refresh Token in DB
         await pool.query("UPDATE agents SET refresh_token = ? WHERE id = ?", [tokens.refreshToken, agent.id]);
+        console.log(`[AUTH] Refresh token stored for ${agent.agent_id}`);
 
+        console.log(`[AUTH] Response sent for ${agent.agent_id}`);
         res.json({
             success: true,
             token: tokens.accessToken, // Maintain backward compatibility for now if frontend uses 'token'

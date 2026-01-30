@@ -8,6 +8,7 @@ const axios = require("axios");
  */
 const verifyMsg91Otp = async (mobile, accessToken) => {
     try {
+        console.log(`[MSG91] Verifying access token...`);
         const response = await axios.post(
             "https://control.msg91.com/api/v5/widget/verifyAccessToken",
             {
@@ -19,8 +20,10 @@ const verifyMsg91Otp = async (mobile, accessToken) => {
                 headers: {
                     "Content-Type": "application/json",
                 },
+                timeout: 10000 // 10 second timeout
             }
         );
+        console.log(`[MSG91] Response:`, JSON.stringify(response.data));
 
         // MSG91 usually returns type: "success" or "error"
         if (response.data && response.data.type === "success") {

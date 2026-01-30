@@ -298,6 +298,11 @@ async function runAutoMigration() {
 }
 runAutoMigration();
 
+app.use("*", (req, res) => {
+  console.log(`[404] ${req.method} ${req.url} - Not Handled`);
+  res.status(404).json({ error: "Route Not Found", path: req.url });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
