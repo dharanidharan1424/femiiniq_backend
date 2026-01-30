@@ -11,15 +11,6 @@ router.get("/:agent_id", async (req, res) => {
     }
 
     try {
-        const query = `
-            SELECT ac.category_id, sc.service_name as name 
-            FROM agent_categories ac
-            JOIN service_categories sc ON ac.category_id = sc.id
-            WHERE ac.agent_id = ?
-        `;
-        // Wait, let's check service_categories column names. 
-        // Get-categories.js used 'name'. 
-        // Let's re-verify service_categories schema.
 
         const [results] = await db.query(
             "SELECT ac.category_id, sc.name FROM agent_categories ac JOIN service_categories sc ON ac.category_id = sc.id WHERE ac.agent_id = ?",

@@ -1,3 +1,7 @@
+const express = require("express");
+const router = express.Router();
+const db = require("../config/dummyDb");
+
 // GET specialists for a specific agent (Using specialists table)
 router.get("/:agent_id", async (req, res) => {
     const { agent_id } = req.params;
