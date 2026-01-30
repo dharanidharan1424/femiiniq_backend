@@ -13,7 +13,7 @@ const verifyMsg91Otp = async (mobile, accessToken) => {
         const response = await axios.post(
             "https://control.msg91.com/api/v5/widget/verifyAccessToken",
             {
-                authkey: "453529TylsYiC16978c2c5P1", // Matches Frontend
+                authkey: "453529ARqzMtfwq690314baP1", // User's actual API Auth Key
                 "access-token": accessToken,
                 mobile: formattedMobile
             },
