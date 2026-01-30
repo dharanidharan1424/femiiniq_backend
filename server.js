@@ -291,6 +291,40 @@ async function runAutoMigration() {
       console.log("   ⚠️ Column check execution error:", e.message);
     }
 
+    // 7. Check Gov ID Columns
+    console.log("-> Checking 'agents' Gov ID columns...");
+    try {
+      const connection = await pool.getConnection();
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN document_type VARCHAR(50) DEFAULT NULL");
+        console.log("   ✅ Added 'document_type' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: document_type check skipped."); }
+
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN document_url TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'document_url' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: document_url check skipped."); }
+      connection.release();
+    } catch (e) { console.log("   ⚠️ Gov ID check error:", e.message); }
+
+    // 8. Create agent_bank_details table
+    console.log("-> Checking/Creating 'agent_bank_details' table...");
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS agent_bank_details (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            agent_id VARCHAR(50) NOT NULL UNIQUE,
+            account_number VARCHAR(50),
+            ifsc_code VARCHAR(20),
+            account_holder_name VARCHAR(100),
+            bank_name VARCHAR(100),
+            is_verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (agent_id) REFERENCES agents(agent_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    console.log("   ✅ 'agent_bank_details' table ready.");
+
     console.log("✨ Auto-Migration Complete.");
   } catch (error) {
     console.error("⚠️ Auto-Migration Warning:", error.message);
