@@ -147,6 +147,9 @@ app.use((req, res, next) => {
 const getSpecialistsRouter = require("./Partner/get-specialists.js");
 app.use("/partner/get-specialists", getSpecialistsRouter);
 
+const getAgentCategoriesRouter = require("./Partner/Get-agent-categories.js");
+app.use("/partner/agent-categories", getAgentCategoriesRouter);
+
 // <---------------------------------------------------------REAL DATA INTEGRATION----------------------------------------------------------->
 const bookingsRouter = require("./Real-data/Bookings/bookings.js");
 

@@ -12,6 +12,7 @@ router.post("/step3-service-location", onboardingController.updateServiceLocatio
 router.post("/step4-categories", onboardingController.addCategories);
 router.post("/step5-services", onboardingController.addServices);
 router.post("/step6-packages", onboardingController.addPackages);
+router.post("/step-specialists", onboardingController.addSpecialists);
 router.post("/step-availability", onboardingController.updateAvailability);
 router.post("/step-govid", onboardingController.updateGovId);
 router.post("/step-bank-details", onboardingController.updateBankDetails);

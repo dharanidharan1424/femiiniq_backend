@@ -1,0 +1,141 @@
+{
+  "agent_categories": [
+    {
+      "id": 13,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "created_at": "2026-01-30T02:25:36.000Z"
+    },
+    {
+      "id": 14,
+      "agent_id": "FP000012",
+      "category_id": 2,
+      "created_at": "2026-01-30T02:25:36.000Z"
+    },
+    {
+      "id": 15,
+      "agent_id": "FP000012",
+      "category_id": 8,
+      "created_at": "2026-01-30T02:25:36.000Z"
+    }
+  ],
+  "agent_services": [
+    {
+      "id": 1,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "service_name": "Ryfui",
+      "price": "500.00",
+      "duration": 60,
+      "description": "Ryfui - Professional service",
+      "created_at": "2026-01-28T09:29:00.000Z"
+    },
+    {
+      "id": 2,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "service_name": "Hsjso",
+      "price": "600.00",
+      "duration": 60,
+      "description": "Hsjso - Professional service",
+      "created_at": "2026-01-28T22:13:39.000Z"
+    },
+    {
+      "id": 3,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "service_name": "Hshsj",
+      "price": "600.00",
+      "duration": 60,
+      "description": "Hshsj - Professional service",
+      "created_at": "2026-01-29T03:03:13.000Z"
+    },
+    {
+      "id": 4,
+      "agent_id": "FP000012",
+      "category_id": 2,
+      "service_name": "Ncmck",
+      "price": "12500.00",
+      "duration": 60,
+      "description": "Ncmck - Professional service",
+      "created_at": "2026-01-29T03:03:13.000Z"
+    },
+    {
+      "id": 5,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "service_name": "Fjtiti",
+      "price": "500.00",
+      "duration": 45,
+      "description": "Fjtiti - Professional service",
+      "created_at": "2026-01-29T23:46:53.000Z"
+    },
+    {
+      "id": 6,
+      "agent_id": "FP000012",
+      "category_id": 1,
+      "service_name": "Hfkdk",
+      "price": "600.00",
+      "duration": 60,
+      "description": "Hfkdk - Professional service",
+      "created_at": "2026-01-30T00:31:44.000Z"
+    },
+    {
+      "id": 7,
+      "agent_id": "FP000012",
+      "category_id": 1,
+      "service_name": "Hfkdk",
+      "price": "600.00",
+      "duration": 60,
+      "description": "Hfkdk - Professional service",
+      "created_at": "2026-01-30T00:32:37.000Z"
+    },
+    {
+      "id": 8,
+      "agent_id": "FP000012",
+      "category_id": 1,
+      "service_name": "Jvogo",
+      "price": "200.00",
+      "duration": 60,
+      "description": "Jvogo - Professional service",
+      "created_at": "2026-01-30T00:33:40.000Z"
+    },
+    {
+      "id": 9,
+      "agent_id": "FP000012",
+      "category_id": 1,
+      "service_name": "Ufugi",
+      "price": "60.00",
+      "duration": 60,
+      "description": "Ufugi - Professional service",
+      "created_at": "2026-01-30T00:40:18.000Z"
+    },
+    {
+      "id": 10,
+      "agent_id": "FP000012",
+      "category_id": 9,
+      "service_name": "Cjgkg",
+      "price": "600.00",
+      "duration": 60,
+      "description": "Cjgkg - Professional service",
+      "created_at": "2026-01-30T02:25:48.000Z"
+    }
+  ],
+  "agents_sample": [
+    {
+      "agent_id": "FP000010",
+      "shop_id": 0,
+      "full_name": "Partner 5891"
+    },
+    {
+      "agent_id": "FP000011",
+      "shop_id": 0,
+      "full_name": "Partner 5891"
+    },
+    {
+      "agent_id": "FP000012",
+      "shop_id": 0,
+      "full_name": "Tuti"
+    }
+  ]
+}

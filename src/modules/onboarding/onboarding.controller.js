@@ -134,43 +134,26 @@ exports.addServices = async (req, res) => {
 
         if (!Array.isArray(services)) return res.status(400).json({ error: "services must be an array" });
 
-        // Get agent info for denormalized fields
-        const [agents] = await pool.query("SELECT name, shop_id FROM agents WHERE agent_id = ?", [agent_id]);
-        const agentName = agents[0]?.name || "Partner";
-        const shopId = agents[0]?.shop_id || 1;
-
-        // Get a default staff ID (required by legacy schema)
-        const [staffs] = await pool.query("SELECT id FROM staffs WHERE shop_id = ? LIMIT 1", [shopId]);
-        const defaultStaffId = staffs[0]?.id || 1;
+        // Clear existing services for this agent to allow re-entry/updates during onboarding
+        await pool.query("DELETE FROM agent_services WHERE agent_id = ?", [agent_id]);
 
         for (const service of services) {
-            // Generate max ID manually for legacy service_type table if needed, or rely on auto-increment
-            // Check if service_type uses auto-increment. Assuming yes based on schema provided earlier, 
-            // but Add-services.js used manual ID generation. Let's use manual to be safe as per Add-services.js pattern.
-            const [maxIdResult] = await pool.query("SELECT MAX(id) as maxId FROM service_type");
-            const nextId = (maxIdResult[0].maxId || 0) + 1;
-
             await pool.query(
-                `INSERT INTO service_type 
-                (id, category_id, name, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name, image) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO agent_services 
+                (agent_id, category_id, service_name, price, duration, description, image) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    nextId,
+                    agent_id,
                     service.category_id,
                     service.service_name,
                     service.price,
-                    service.price, // original_price same as price for now
-                    defaultStaffId,
                     service.duration,
                     service.description || "Service",
-                    "Standard procedure", // procedure_desc
-                    agent_id,
-                    agentName,
                     service.image || null
                 ]
             );
         }
-        res.json({ success: true, message: "Services added" });
+        res.json({ success: true, message: "Services added to agent_services" });
     } catch (error) {
         console.error("Add Services Error:", error);
         res.status(500).json({ error: error.message });
@@ -184,45 +167,59 @@ exports.addPackages = async (req, res) => {
 
         if (!Array.isArray(packages)) return res.status(400).json({ error: "packages must be an array" });
 
-        const [agents] = await pool.query("SELECT name, shop_id FROM agents WHERE agent_id = ?", [agent_id]);
-        const agentName = agents[0]?.name || "Partner";
-        const shopId = agents[0]?.shop_id || 1;
-        const [staffs] = await pool.query("SELECT id FROM staffs WHERE shop_id = ? LIMIT 1", [shopId]);
-        const defaultStaffId = staffs[0]?.id || 1;
+        // Clear existing packages for this agent
+        await pool.query("DELETE FROM agent_packages WHERE agent_id = ?", [agent_id]);
 
         for (const pkg of packages) {
-            // Manual ID generation for legacy service_package table
-            const [maxIdResult] = await pool.query("SELECT MAX(id) as maxId FROM service_package");
-            const nextId = (maxIdResult[0].maxId || 0) + 1;
-
             await pool.query(
-                `INSERT INTO service_package 
-                (id, category_id, name, price, description, agent_id, agent_name, staff_id, image, booked, original_price, duration, process_desc, services)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO agent_packages 
+                (agent_id, package_name, total_price, description, services, image)
+                VALUES (?, ?, ?, ?, ?, ?)`,
                 [
-                    nextId,
-                    1, // Default category_id as packages might span multiple
+                    agent_id,
                     pkg.package_name,
                     pkg.total_price,
                     pkg.description || "Package Deal",
-                    agent_id,
-                    agentName,
-                    defaultStaffId,
-                    "https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png", // Default image
-                    0, // booked
-                    pkg.total_price, // original_price
-                    60, // Default duration if not calc from items
-                    "Standard Package Process",
-                    JSON.stringify(pkg.items || []) // Store service IDs as JSON string in 'services' column
+                    JSON.stringify(pkg.items || []), // Store service details or IDs as JSON
+                    pkg.image || null
                 ]
             );
         }
-        res.json({ success: true, message: "Packages created" });
+        res.json({ success: true, message: "Packages created in agent_packages" });
     } catch (error) {
         console.error("Add Packages Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
+
+exports.addSpecialists = async (req, res) => {
+    try {
+        const { specialists } = req.body; // Array of {name, specialty, image}
+        const agent_id = req.user.agent_id;
+
+        if (!Array.isArray(specialists)) return res.status(400).json({ error: "specialists must be an array" });
+
+        // Clear existing specialists for this agent
+        await pool.query("DELETE FROM specialists WHERE agent_id = ?", [agent_id]);
+
+        for (const spec of specialists) {
+            await pool.query(
+                `INSERT INTO specialists (agent_id, name, category, image) VALUES (?, ?, ?, ?)`,
+                [
+                    agent_id,
+                    spec.name,
+                    spec.specialty || "Specialist",
+                    spec.image || null
+                ]
+            );
+        }
+        res.json({ success: true, message: "Specialists added to specialists table" });
+    } catch (error) {
+        console.error("Add Specialists Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 exports.updateAvailability = async (req, res) => {
     try {
