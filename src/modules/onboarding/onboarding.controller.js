@@ -274,7 +274,7 @@ exports.updateGovId = async (req, res) => {
         // Use base64 image if provided, otherwise use id_url
         const imageData = id_image_base64 || id_url;
 
-        const updates = ["document_type = ?", "document_url = ?", "status = 'pending'"];
+        const updates = ["document_type = ?", "document_url = ?"];
         const values = [id_type, imageData];
 
         if (gst_number) {
