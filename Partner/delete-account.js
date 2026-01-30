@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/dummyDb");
 
-const authenticateToken = require("../middleware/authMiddleware");
+const authenticateToken = require("../middleware/authToken");
 
 router.delete("/", authenticateToken, async (req, res) => {
     console.log("Partner delete account request received");
