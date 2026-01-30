@@ -26,6 +26,26 @@ const toggleStatus = async (req, res) => {
     }
 };
 
+const getBankDetails = async (req, res) => {
+    try {
+        const agent_id = req.user.agent_id;
+
+        const [rows] = await pool.query(
+            "SELECT * FROM agent_bank_details WHERE agent_id = ?",
+            [agent_id]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: true, data: null, message: "No bank details found" });
+        }
+
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
-    toggleStatus
+    toggleStatus,
+    getBankDetails
 };

@@ -5,5 +5,6 @@ const authMiddleware = require("../../../middleware/authToken");
 
 // Protected routes
 router.patch("/status", authMiddleware, agentController.toggleStatus);
+router.get("/bank-details", authMiddleware, agentController.getBankDetails);
 
 module.exports = router;
