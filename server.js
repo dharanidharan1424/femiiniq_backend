@@ -310,6 +310,13 @@ async function runAutoMigration() {
         await connection.query("ALTER TABLE agents ADD COLUMN document_url TEXT DEFAULT NULL");
         console.log("   ✅ Added 'document_url' column.");
       } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: document_url check skipped."); }
+
+      // Modify document_url to MEDIUMTEXT to support base64 images
+      try {
+        await connection.query("ALTER TABLE agents MODIFY COLUMN document_url MEDIUMTEXT");
+        console.log("   ✅ Modified 'document_url' to MEDIUMTEXT for base64 support.");
+      } catch (e) { console.log("   Info: document_url modification skipped:", e.message); }
+
       connection.release();
     } catch (e) { console.log("   ⚠️ Gov ID check error:", e.message); }
 
