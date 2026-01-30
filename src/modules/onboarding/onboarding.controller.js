@@ -271,7 +271,7 @@ exports.updateGovId = async (req, res) => {
         const { id_type, id_url, gst_number } = req.body; // e.g., 'aadhaar', 'https://...'
         const agent_id = req.user.agent_id;
 
-        const updates = ["document_type = ?", "document_url = ?", "status = 'Pending Verification'"];
+        const updates = ["document_type = ?", "document_url = ?", "status = 'pending'"];
         const values = [id_type, id_url];
 
         if (gst_number) {
