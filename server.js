@@ -10,7 +10,7 @@ const app = express();
 const corsOptions = {
   origin: true, // Allow all origins for troubleshooting
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
@@ -137,6 +137,11 @@ app.use("/api/booking/available-slots", getAvailableSlotsRouter);
 
 // Partner account deletion
 app.use("/delete-agentProfile", partnerDeleteAccountRouter);
+
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 // Get specialists for a shop
 const getSpecialistsRouter = require("./Partner/get-specialists.js");
