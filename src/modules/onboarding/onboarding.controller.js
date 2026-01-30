@@ -99,12 +99,27 @@ exports.addCategories = async (req, res) => {
 
         if (!Array.isArray(category_ids)) return res.status(400).json({ error: "category_ids must be an array" });
 
-        // Clear existing? Or just add new? Usually replace is safer for sync
+        // Clear existing agent_categories
         await pool.query("DELETE FROM agent_categories WHERE agent_id = ?", [agent_id]);
 
+        const selectedCategories = [];
+
+        // Insert into agent_categories and fetch names for legacy support
         for (const catId of category_ids) {
             await pool.query("INSERT INTO agent_categories (agent_id, category_id) VALUES (?, ?)", [agent_id, catId]);
+
+            // Fetch category name
+            const [catRows] = await pool.query("SELECT label, value FROM service_categories WHERE id = ? OR value = ?", [catId, catId]);
+            if (catRows.length > 0) {
+                selectedCategories.push({ id: catRows[0].value, name: catRows[0].label });
+            }
         }
+
+        // Update legacy 'category' column in agents table for provider-settings compatibility
+        if (selectedCategories.length > 0) {
+            await pool.query("UPDATE agents SET category = ? WHERE agent_id = ?", [JSON.stringify(selectedCategories), agent_id]);
+        }
+
         res.json({ success: true, message: "Categories updated" });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -118,18 +133,45 @@ exports.addServices = async (req, res) => {
 
         if (!Array.isArray(services)) return res.status(400).json({ error: "services must be an array" });
 
-        // Assuming we want to Add, not replace all, unless it's a full sync. 
-        // For simplicity of onboarding, let's Insert. If needed, frontend can handle delete separately.
+        // Get agent info for denormalized fields
+        const [agents] = await pool.query("SELECT name, shop_id FROM agents WHERE agent_id = ?", [agent_id]);
+        const agentName = agents[0]?.name || "Partner";
+        const shopId = agents[0]?.shop_id || 1;
+
+        // Get a default staff ID (required by legacy schema)
+        const [staffs] = await pool.query("SELECT id FROM staffs WHERE shop_id = ? LIMIT 1", [shopId]);
+        const defaultStaffId = staffs[0]?.id || 1;
+
         for (const service of services) {
-            // Handle optional fields
+            // Generate max ID manually for legacy service_type table if needed, or rely on auto-increment
+            // Check if service_type uses auto-increment. Assuming yes based on schema provided earlier, 
+            // but Add-services.js used manual ID generation. Let's use manual to be safe as per Add-services.js pattern.
+            const [maxIdResult] = await pool.query("SELECT MAX(id) as maxId FROM service_type");
+            const nextId = (maxIdResult[0].maxId || 0) + 1;
+
             await pool.query(
-                `INSERT INTO agent_services (agent_id, category_id, service_name, price, duration, description) 
-          VALUES (?, ?, ?, ?, ?, ?)`,
-                [agent_id, service.category_id, service.service_name, service.price, service.duration, service.description || ""]
+                `INSERT INTO service_type 
+                (id, category_id, name, price, original_price, staff_id, duration, description, procedure_desc, agent_id, agent_name, image) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    nextId,
+                    service.category_id,
+                    service.service_name,
+                    service.price,
+                    service.price, // original_price same as price for now
+                    defaultStaffId,
+                    service.duration,
+                    service.description || "Service",
+                    "Standard procedure", // procedure_desc
+                    agent_id,
+                    agentName,
+                    service.image || null
+                ]
             );
         }
         res.json({ success: true, message: "Services added" });
     } catch (error) {
+        console.error("Add Services Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -141,24 +183,42 @@ exports.addPackages = async (req, res) => {
 
         if (!Array.isArray(packages)) return res.status(400).json({ error: "packages must be an array" });
 
-        for (const pkg of packages) {
-            const [result] = await pool.query(
-                `INSERT INTO agent_packages (agent_id, package_name, total_price, description) VALUES (?, ?, ?, ?)`,
-                [agent_id, pkg.package_name, pkg.total_price, pkg.description]
-            );
-            const packageId = result.insertId;
+        const [agents] = await pool.query("SELECT name, shop_id FROM agents WHERE agent_id = ?", [agent_id]);
+        const agentName = agents[0]?.name || "Partner";
+        const shopId = agents[0]?.shop_id || 1;
+        const [staffs] = await pool.query("SELECT id FROM staffs WHERE shop_id = ? LIMIT 1", [shopId]);
+        const defaultStaffId = staffs[0]?.id || 1;
 
-            if (pkg.items && Array.isArray(pkg.items)) {
-                for (const serviceId of pkg.items) {
-                    await pool.query(
-                        `INSERT INTO package_items (package_id, service_id) VALUES (?, ?)`,
-                        [packageId, serviceId]
-                    );
-                }
-            }
+        for (const pkg of packages) {
+            // Manual ID generation for legacy service_package table
+            const [maxIdResult] = await pool.query("SELECT MAX(id) as maxId FROM service_package");
+            const nextId = (maxIdResult[0].maxId || 0) + 1;
+
+            await pool.query(
+                `INSERT INTO service_package 
+                (id, category_id, name, price, description, agent_id, agent_name, staff_id, image, booked, original_price, duration, process_desc, services)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    nextId,
+                    1, // Default category_id as packages might span multiple
+                    pkg.package_name,
+                    pkg.total_price,
+                    pkg.description || "Package Deal",
+                    agent_id,
+                    agentName,
+                    defaultStaffId,
+                    "https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png", // Default image
+                    0, // booked
+                    pkg.total_price, // original_price
+                    60, // Default duration if not calc from items
+                    "Standard Package Process",
+                    JSON.stringify(pkg.items || []) // Store service IDs as JSON string in 'services' column
+                ]
+            );
         }
         res.json({ success: true, message: "Packages created" });
     } catch (error) {
+        console.error("Add Packages Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
