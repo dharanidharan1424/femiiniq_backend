@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const onboardingController = require("./onboarding.controller");
-const authenticateToken = require("../../middleware/authToken");
+const authenticateToken = require("../../../middleware/authToken");
 
 // All routes here should be protected
 router.use(authenticateToken);
