@@ -268,11 +268,14 @@ exports.updateBankDetails = async (req, res) => {
 
 exports.updateGovId = async (req, res) => {
     try {
-        const { id_type, id_url, gst_number } = req.body; // e.g., 'aadhaar', 'https://...'
+        const { id_type, id_url, id_image_base64, gst_number } = req.body;
         const agent_id = req.user.agent_id;
 
+        // Use base64 image if provided, otherwise use id_url
+        const imageData = id_image_base64 || id_url;
+
         const updates = ["document_type = ?", "document_url = ?", "status = 'pending'"];
-        const values = [id_type, id_url];
+        const values = [id_type, imageData];
 
         if (gst_number) {
             updates.push("gst_number = ?");
