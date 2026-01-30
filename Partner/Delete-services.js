@@ -33,7 +33,7 @@ router.post("/service", async (req, res) => {
       }
 
       const hasService = servicesArray.some(
-        (s) => s.type === "service" && s.id === parseInt(serviceId)
+        (s) => s.type === "service" && String(s.id) === String(serviceId)
       );
 
       if (hasService) {
@@ -44,9 +44,9 @@ router.post("/service", async (req, res) => {
       }
     }
 
-    // 3️⃣ Proceed to delete from service_type table
+    // 3️⃣ Proceed to delete from agent_services table
     const [result] = await db.query(
-      "DELETE FROM service_type WHERE agent_id = ? AND id = ?",
+      "DELETE FROM agent_services WHERE agent_id = ? AND id = ?",
       [agentId, serviceId]
     );
 
@@ -99,7 +99,7 @@ router.post("/package", async (req, res) => {
       }
 
       const hasPackage = servicesArray.some(
-        (s) => s.type === "package" && s.id === parseInt(packageId)
+        (s) => s.type === "package" && String(s.id) === String(packageId)
       );
 
       if (hasPackage) {
@@ -110,9 +110,9 @@ router.post("/package", async (req, res) => {
       }
     }
 
-    // 3️⃣ Proceed to delete from service_package table
+    // 3️⃣ Proceed to delete from agent_packages table
     const [result] = await db.query(
-      "DELETE FROM service_package WHERE agent_id = ? AND id = ?",
+      "DELETE FROM agent_packages WHERE agent_id = ? AND id = ?",
       [agentId, packageId]
     );
 
@@ -126,6 +126,43 @@ router.post("/package", async (req, res) => {
     return res.json({
       status: "success",
       message: "Package deleted successfully.",
+    });
+  } catch (err) {
+    console.error("DB error:", err);
+    return res.status(500).json({ status: "error", message: "Database error" });
+  }
+});
+
+// ✅ POST /partner/delete/staff → Delete a specialist (specialists table)
+router.post("/staff", async (req, res) => {
+  const { agentId, staffId } = req.body;
+
+  if (!agentId || !staffId) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "Missing agentId or staffId" });
+  }
+
+  try {
+    // We could check for upcoming bookings that might be assigned to this staff member,
+    // but the current system doesn't seem to have a strict staff-booking assignment in the bookings table 'services' JSON.
+    // If it did, we'd loop through bookings like we do for services/packages.
+
+    const [result] = await db.query(
+      "DELETE FROM specialists WHERE agent_id = ? AND id = ?",
+      [agentId, staffId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Specialist not found or not owned by agent.",
+      });
+    }
+
+    return res.json({
+      status: "success",
+      message: "Specialist deleted successfully.",
     });
   } catch (err) {
     console.error("DB error:", err);

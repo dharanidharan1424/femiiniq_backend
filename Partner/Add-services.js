@@ -62,12 +62,62 @@ router.post("/staff", async (req, res) => {
     ];
 
     console.log("📝 Executing Specialist Insert query with values:", values);
-    await db.query(query, values);
+    const [result] = await db.query(query, values);
     console.log("✅ Specialist added successfully to DB.");
 
-    return res.status(201).json({ status: "success", message: "Specialist added successfully" });
+    return res.status(201).json({ status: "success", id: result.insertId, message: "Specialist added successfully" });
   } catch (error) {
     console.error("Add Staff Error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
+// ✅ UPDATE Specialist (Using specialists table)
+router.post("/staff/update", async (req, res) => {
+  try {
+    const {
+      staffId,
+      agent_id,
+      name,
+      image,
+      specialty
+    } = req.body;
+
+    if (!staffId || !agent_id || !name) {
+      return res.status(400).json({ status: "error", message: "Missing required fields (staffId, agent_id, name)." });
+    }
+
+    const updateQuery = `
+      UPDATE specialists SET
+        name = ?,
+        image = ?,
+        category = ?
+      WHERE id = ? AND agent_id = ?
+    `;
+
+    const values = [
+      name,
+      image || 'https://res.cloudinary.com/djponxjp9/image/upload/v1736230557/MobileApp/placeholder.png',
+      specialty || 'Professional Specialist',
+      staffId,
+      agent_id
+    ];
+
+    const [updateResult] = await db.query(updateQuery, values);
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Staff member not found or unauthorized.",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Staff member updated successfully.",
+    });
+  } catch (error) {
+    console.error("Update Staff API Error:", error);
     return res.status(500).json({ status: "error", message: error.message });
   }
 });

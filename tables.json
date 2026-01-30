@@ -15,6 +15,15 @@
     "Tables_in_railway": "admins"
   },
   {
+    "Tables_in_railway": "agent_availability"
+  },
+  {
+    "Tables_in_railway": "agent_bank_details"
+  },
+  {
+    "Tables_in_railway": "agent_categories"
+  },
+  {
     "Tables_in_railway": "agent_deleted_accounts"
   },
   {
@@ -27,10 +36,19 @@
     "Tables_in_railway": "agent_notifications"
   },
   {
+    "Tables_in_railway": "agent_packages"
+  },
+  {
     "Tables_in_railway": "agent_payment_details"
   },
   {
     "Tables_in_railway": "agent_reports"
+  },
+  {
+    "Tables_in_railway": "agent_services"
+  },
+  {
+    "Tables_in_railway": "agent_working_hours"
   },
   {
     "Tables_in_railway": "agents"
@@ -69,16 +87,7 @@
     "Tables_in_railway": "coupons"
   },
   {
-    "Tables_in_railway": "demobookings"
-  },
-  {
     "Tables_in_railway": "locations"
-  },
-  {
-    "Tables_in_railway": "mobile_reviews"
-  },
-  {
-    "Tables_in_railway": "mobile_user_auth"
   },
   {
     "Tables_in_railway": "newsletter_subscribers"
@@ -94,6 +103,9 @@
   },
   {
     "Tables_in_railway": "otp_verifications"
+  },
+  {
+    "Tables_in_railway": "package_items"
   },
   {
     "Tables_in_railway": "password_resets"
@@ -126,9 +138,6 @@
     "Tables_in_railway": "reports"
   },
   {
-    "Tables_in_railway": "reschedule_requests"
-  },
-  {
     "Tables_in_railway": "review_likes"
   },
   {
@@ -151,6 +160,9 @@
   },
   {
     "Tables_in_railway": "services"
+  },
+  {
+    "Tables_in_railway": "specialists"
   },
   {
     "Tables_in_railway": "staff"

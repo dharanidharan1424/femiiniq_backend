@@ -36,7 +36,7 @@ router.delete("/", authenticateToken, async (req, res) => {
         if (reason) {
             try {
                 await pool.query(
-                    `INSERT INTO agent_deletions (agent_id, reason, deleted_at) VALUES (?, ?, NOW())`,
+                    `INSERT INTO agent_deleted_accounts (agent_id, reason, deleted_at) VALUES (?, ?, NOW())`,
                     [agent_id, reason]
                 );
             } catch (logError) {
@@ -49,21 +49,21 @@ router.delete("/", authenticateToken, async (req, res) => {
         await pool.query("DELETE FROM agent_categories WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_services WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_packages WHERE agent_id = ?", [agent_id]);
-        // Note: package_items might need deleting if they don't cascade. Assuming they do or we ignore for now as they are child of agent_packages which we just deleted (if cascade on DB).
-        // If not cascade, we'd need to select package IDs first. But for now let's hope for cascade or loose coupling.
+        await pool.query("DELETE FROM specialists WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_images WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_notes WHERE agent_id = ?", [agent_id]);
 
         await pool.query("DELETE FROM agent_availability WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM agent_bank_details WHERE agent_id = ?", [agent_id]);
-        await pool.query("DELETE FROM agent_documents WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM provider_settings WHERE agent_id = ?", [agent_id]);
+        await pool.query("DELETE FROM agent_working_hours WHERE agent_id = ?", [agent_id]);
 
         // Legacy Tables
         await pool.query("DELETE FROM availability WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM service_type WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM service_package WHERE agent_id = ?", [agent_id]);
-        await pool.query("DELETE FROM provider_settings WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM availability_slots WHERE agent_id = ?", [agent_id]);
         await pool.query("DELETE FROM booking_slots WHERE agent_id = ?", [agent_id]);
-        await pool.query("DELETE FROM agent_working_hours WHERE agent_id = ?", [agent_id]);
 
         // 4. Delete agent account
         await pool.query("DELETE FROM agents WHERE agent_id = ?", [agent_id]);
