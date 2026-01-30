@@ -286,6 +286,12 @@ async function runAutoMigration() {
         console.log("   ✅ Added 'refresh_token' column.");
       } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: refresh_token check skipped."); }
 
+      // Check/Add gst_number
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN gst_number VARCHAR(50) DEFAULT NULL");
+        console.log("   ✅ Added 'gst_number' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: gst_number check skipped."); }
+
       connection.release();
     } catch (e) {
       console.log("   ⚠️ Column check execution error:", e.message);

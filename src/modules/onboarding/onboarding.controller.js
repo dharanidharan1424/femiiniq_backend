@@ -268,25 +268,22 @@ exports.updateBankDetails = async (req, res) => {
 
 exports.updateGovId = async (req, res) => {
     try {
-        const { id_type, id_url } = req.body; // e.g., 'aadhaar', 'https://...'
+        const { id_type, id_url, gst_number } = req.body; // e.g., 'aadhaar', 'https://...'
         const agent_id = req.user.agent_id;
 
-        // Assuming we store this in agents table or agent_documents. 
-        // For now, let's assume agents table has columns or we add them.
-        // User didn't ask for new table, but "ask gov id".
-        // Let's check schema. Assuming we can store in `agents` table (e.g. `gov_id_type`, `gov_id_url`) 
-        // OR `agent_documents` table.
-        // I will use `agents` table for simplicity if columns exist, OR create logic.
-        // Wait, schema check showed `adminverifystatus`. 
-        // I'll add columns `gov_id_type` and `gov_id_url` to `agents` table if they don't exist.
-        // Actually, to be safe and clean, I should have added them. 
-        // But since I can't easily check DB state live without query tool, I will assume I need to ADD them or use a generic field.
-        // I'll assume columns `document_type` and `document_url` or similar.
-        // Let's use `document_id_type` and `document_id_url`.
+        const updates = ["document_type = ?", "document_url = ?", "status = 'Pending Verification'"];
+        const values = [id_type, id_url];
+
+        if (gst_number) {
+            updates.push("gst_number = ?");
+            values.push(gst_number);
+        }
+
+        values.push(agent_id);
 
         await pool.query(
-            "UPDATE agents SET document_type = ?, document_url = ?, status = 'Pending Verification' WHERE agent_id = ?",
-            [id_type, id_url, agent_id]
+            `UPDATE agents SET ${updates.join(", ")} WHERE agent_id = ?`,
+            values
         );
 
         res.json({ success: true, message: "Gov ID updated" });
