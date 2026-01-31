@@ -8,7 +8,7 @@ const toggleStatus = async (req, res) => {
     }
 
     try {
-        const query = "UPDATE agents SET status = ?, updated_at = NOW() WHERE agent_id = ?";
+        const query = "UPDATE agents SET status = ? WHERE agent_id = ?";
         const [result] = await pool.query(query, [status, agent_id]);
 
         if (result.affectedRows === 0) {
