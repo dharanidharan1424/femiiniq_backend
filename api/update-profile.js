@@ -5,7 +5,7 @@ const authenticateToken = require("../middleware/authToken");
 
 router.post("/", authenticateToken, async (req, res) => {
   const data = req.body;
-  const userId = req.user.userId; // from JWT payload
+  const userId = req.user.id || req.user.userId; // Handle both id keys based on payload
 
   if (!userId || userId <= 0) {
     return res
