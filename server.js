@@ -302,7 +302,30 @@ async function runAutoMigration() {
       console.log("   ⚠️ Column check execution error:", e.message);
     }
 
-    // 7. Check Gov ID Columns
+    // 7. agent_services and agent_packages (Self-Healing)
+    console.log("-> Checking 'agent_services' and 'agent_packages' table columns...");
+    try {
+      const connection = await pool.getConnection();
+      // Service Image
+      try {
+        await connection.query("ALTER TABLE agent_services ADD COLUMN image TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'image' to agent_services.");
+      } catch (e) { /* ignore */ }
+
+      // Package Services and Image
+      try {
+        await connection.query("ALTER TABLE agent_packages ADD COLUMN services JSON DEFAULT NULL");
+        console.log("   ✅ Added 'services' to agent_packages.");
+      } catch (e) { /* ignore */ }
+      try {
+        await connection.query("ALTER TABLE agent_packages ADD COLUMN image TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'image' to agent_packages.");
+      } catch (e) { /* ignore */ }
+
+      connection.release();
+    } catch (e) { console.log("   ⚠️ Service/Package check error:", e.message); }
+
+    // 8. Check Gov ID Columns
     console.log("-> Checking 'agents' Gov ID columns...");
     try {
       const connection = await pool.getConnection();

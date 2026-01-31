@@ -20,7 +20,7 @@ exports.updatePersonalInfo = async (req, res) => {
     try {
         const {
             full_name, dob, gender, experience_years, owner_name, salon_name,
-            street, area, city, state, pincode, country, category
+            street, area, city, state, pincode, country, category, description
         } = req.body;
 
         // Dynamic update based on provided fields
@@ -45,6 +45,7 @@ exports.updatePersonalInfo = async (req, res) => {
         if (pincode) { updates.push("pincode = ?"); values.push(pincode); }
         if (country) { updates.push("country = ?"); values.push(country); }
         if (category) { updates.push("category = ?"); values.push(category); }
+        if (description) { updates.push("about_desc = ?"); values.push(description); }
         if (req.body.image) { updates.push("image = ?"); values.push(req.body.image); }
 
         if (updates.length > 0) {
@@ -110,9 +111,9 @@ exports.addCategories = async (req, res) => {
             await pool.query("INSERT INTO agent_categories (agent_id, category_id) VALUES (?, ?)", [agent_id, catId]);
 
             // Fetch category name
-            const [catRows] = await pool.query("SELECT label, value FROM service_categories WHERE id = ? OR value = ?", [catId, catId]);
+            const [catRows] = await pool.query("SELECT name, id FROM service_categories WHERE id = ?", [catId]);
             if (catRows.length > 0) {
-                selectedCategories.push({ id: catRows[0].value, name: catRows[0].label });
+                selectedCategories.push({ id: catRows[0].id, name: catRows[0].name });
             }
         }
 
@@ -123,7 +124,8 @@ exports.addCategories = async (req, res) => {
 
         res.json({ success: true, message: "Categories updated" });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Add Categories Error:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -156,7 +158,7 @@ exports.addServices = async (req, res) => {
         res.json({ success: true, message: "Services added to agent_services" });
     } catch (error) {
         console.error("Add Services Error:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -188,7 +190,7 @@ exports.addPackages = async (req, res) => {
         res.json({ success: true, message: "Packages created in agent_packages" });
     } catch (error) {
         console.error("Add Packages Error:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -216,7 +218,7 @@ exports.addSpecialists = async (req, res) => {
         res.json({ success: true, message: "Specialists added to specialists table" });
     } catch (error) {
         console.error("Add Specialists Error:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 

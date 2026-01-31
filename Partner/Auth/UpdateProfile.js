@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
   const fieldMap = {
     full_name: agentProfile.full_name || agentProfile.fullname,
     image: agentProfile.imageUrl || agentProfile.image,
-    about_desc: agentProfile.about_desc || agentProfile.about,
+    about_desc: agentProfile.about_desc || agentProfile.about || agentProfile.description,
     status: agentProfile.status,
     dob: agentProfile.dob,
     email: agentProfile.email,
