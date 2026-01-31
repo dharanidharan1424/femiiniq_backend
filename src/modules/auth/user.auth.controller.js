@@ -62,9 +62,9 @@ exports.verifyOtp = async (req, res) => {
 
             // Using INSERT IGNORE or standard INSERT
             await pool.query(
-                `INSERT INTO users (mobile, email, name, password) 
-                 VALUES (?, ?, ?, 'mobile-login-no-pass')`,
-                [mobile, dummyEmail, dummyName]
+                `INSERT INTO users (mobile, email, name, fullname, password) 
+                 VALUES (?, ?, ?, ?, 'mobile-login-no-pass')`,
+                [mobile, dummyEmail, dummyName, dummyName]
             );
 
             [users] = await pool.query("SELECT * FROM users WHERE mobile = ?", [mobile]);
