@@ -3,8 +3,8 @@ const pool = require("./config/dummyDb.js");
 async function inspect() {
     try {
         console.log("--- AGENTS TABLE ---");
-        const [agentsDesc] = await pool.query("DESCRIBE agents");
-        console.log(JSON.stringify(agentsDesc, null, 2));
+        const [rows] = await pool.query("DESCRIBE users");
+        console.log(JSON.stringify(rows, null, 2));
 
         console.log("\n--- PROVIDER_SETTINGS TABLE ---");
         try {

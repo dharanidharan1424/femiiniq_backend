@@ -65,8 +65,8 @@ exports.verifyOtp = async (req, res) => {
         const tokens = generateTokens(agent);
         console.log(`[AUTH] Tokens generated for ${agent.agent_id}`);
 
-        // 4. Store Refresh Token in DB
-        await pool.query("UPDATE agents SET refresh_token = ? WHERE id = ?", [tokens.refreshToken, agent.id]);
+        // 4. Store Refresh Token and Access Token in DB
+        await pool.query("UPDATE agents SET refresh_token = ?, jwt_token = ? WHERE id = ?", [tokens.refreshToken, tokens.accessToken, agent.id]);
         console.log(`[AUTH] Refresh token stored for ${agent.agent_id}`);
 
         console.log(`[AUTH] Response sent for ${agent.agent_id}`);

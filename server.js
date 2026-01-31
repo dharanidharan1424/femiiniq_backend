@@ -165,6 +165,10 @@ const travelSettingsRouter = require("./src/modules/partner/travel-settings.rout
 
 // Mount new routes
 app.use("/api/v2/auth", newAuthRouter);
+// User App Auth Routes
+const userAuthRouter = require("./src/modules/auth/user.auth.routes");
+app.use("/api/v2/user-auth", userAuthRouter);
+
 app.use("/api/v2/onboarding", newOnboardingRouter);
 app.use("/api/v2/agent", newAgentRouter);
 app.use("/api/v2/partner/travel-settings", travelSettingsRouter);
@@ -353,6 +357,11 @@ async function runAutoMigration() {
         console.log("   ✅ Added 'push_token' column.");
       } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: push_token check skipped."); }
 
+      // Check/Add jwt_token (User Request)
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN jwt_token TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'jwt_token' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: jwt_token check skipped."); }
 
       connection.release();
     } catch (e) { console.log("   ⚠️ Gov ID check error:", e.message); }
@@ -374,6 +383,28 @@ async function runAutoMigration() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
     console.log("   ✅ 'agent_bank_details' table ready.");
+
+    // 9. Ensure Users Table Columns (Self-Healing)
+    console.log("-> Checking 'users' table columns...");
+    try {
+      const connection = await pool.getConnection();
+      // Check/Add refresh_token
+      try {
+        await connection.query("ALTER TABLE users ADD COLUMN refresh_token TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'refresh_token' to users.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: users.refresh_token check skipped."); }
+
+      // Check/Add jwt_token
+      try {
+        await connection.query("ALTER TABLE users ADD COLUMN jwt_token TEXT DEFAULT NULL");
+        console.log("   ✅ Added 'jwt_token' to users.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: users.jwt_token check skipped."); }
+
+      // Ensure password is nullable (if not already) - MODIFY requires full definition, skipping to avoid data loss risk w/o full schema
+      // Instead, we will handle null passwords in logic.
+
+      connection.release();
+    } catch (e) { console.log("   ⚠️ Users table check error:", e.message); }
 
     console.log("✨ Auto-Migration Complete.");
   } catch (error) {
