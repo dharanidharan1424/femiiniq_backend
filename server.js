@@ -347,6 +347,13 @@ async function runAutoMigration() {
         console.log("   ✅ Modified 'document_url' to MEDIUMTEXT for base64 support.");
       } catch (e) { console.log("   Info: document_url modification skipped:", e.message); }
 
+      // Check/Add push_token
+      try {
+        await connection.query("ALTER TABLE agents ADD COLUMN push_token VARCHAR(255) DEFAULT NULL");
+        console.log("   ✅ Added 'push_token' column.");
+      } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') console.log("   Info: push_token check skipped."); }
+
+
       connection.release();
     } catch (e) { console.log("   ⚠️ Gov ID check error:", e.message); }
 

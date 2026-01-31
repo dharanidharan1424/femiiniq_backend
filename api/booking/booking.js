@@ -367,7 +367,7 @@ router.post("/", async (req, res) => {
       console.error("⚠️ Failed to save notification (non-critical):", notifError.message);
     }
 
-    // Try to send push notification (don't let this fail the booking)
+    // Try to send push notification to USER (don't let this fail the booking)
     try {
       if (userPushToken) {
         await sendBookingPushNotification(
@@ -376,12 +376,45 @@ router.post("/", async (req, res) => {
           notifMessage,
           { booking_id: insertedId, booking_date, booking_time, totalprice }
         );
-        console.log("✅ Push notification sent");
+        console.log("✅ User push notification sent");
       } else {
         console.warn("No expo_push_token found for user, not sending push.");
       }
     } catch (pushError) {
-      console.error("⚠️ Failed to send push notification (non-critical):", pushError.message);
+      console.error("⚠️ Failed to send user push notification (non-critical):", pushError.message);
+    }
+
+    // --- AGENT NOTIFICATION ---
+    try {
+      if (agent_id) {
+        // 1. Fetch agent push_token
+        const [agentRows] = await conn.execute(
+          "SELECT push_token FROM agents WHERE id = ?",
+          [agent_id]
+        );
+
+        if (agentRows.length > 0 && agentRows[0].push_token) {
+          const agentPushToken = agentRows[0].push_token;
+          const serviceName = typeof services === 'string'
+            ? JSON.parse(services)[0]?.name
+            : (Array.isArray(services) ? services[0]?.name : "Service");
+
+          const agentMsg = `New Booking! You have received a new booking (#${insertedId}) for ${serviceName || 'a service'} on ${booking_date} at ${formattedTime}. Check app for details.`;
+
+          // 2. Send Push
+          await sendBookingPushNotification(
+            agentPushToken,
+            "New Booking Received! 🎉",
+            agentMsg,
+            { booking_id: insertedId, type: "new_booking" }
+          );
+          console.log("✅ Agent push notification sent");
+        } else {
+          console.log("ℹ️ Agent has no push_token, skipping push.");
+        }
+      }
+    } catch (agentPushErr) {
+      console.error("⚠️ Failed to send agent push notification:", agentPushErr.message);
     }
 
     conn.release();

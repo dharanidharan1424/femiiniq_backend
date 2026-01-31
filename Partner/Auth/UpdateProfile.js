@@ -46,6 +46,7 @@ router.post("/", async (req, res) => {
     landmark: agentProfile.landmark,
     pincode: agentProfile.pincode,
     hide_profile: agentProfile.hide_profile || agentProfile.hideProfile,
+    push_token: agentProfile.push_token,
   };
 
   // Filter out undefined fields to build dynamic query

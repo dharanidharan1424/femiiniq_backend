@@ -15,6 +15,12 @@ router.post("/", async (req, res) => {
             [agent_id]
         );
 
+        // Fetch recent transactions (last 5)
+        const [recentTransactions] = await db.execute(
+            `SELECT * FROM bookings WHERE agent_id = ? ORDER BY booking_date DESC LIMIT 5`,
+            [agent_id]
+        );
+
         // 2. Filter logic (simulated by checking booking_date)
         const now = new Date();
         let monthsToSubtract = 6;
@@ -117,7 +123,9 @@ router.post("/", async (req, res) => {
                 topService,
             },
             chartData: monthlyOrders,
+            chartData: monthlyOrders,
             topServices: serviceList,
+            recentTransactions: recentTransactions,
         });
     } catch (error) {
         console.error("Dashboard API Error:", error);
