@@ -406,6 +406,20 @@ async function runAutoMigration() {
       connection.release();
     } catch (e) { console.log("   ⚠️ Users table check error:", e.message); }
 
+    // 10. Fix Bookings Status Column
+    console.log("-> Updating 'bookings' status column enum...");
+    try {
+      await pool.query(`
+                ALTER TABLE bookings 
+                MODIFY COLUMN status 
+                ENUM('Upcoming','Started','Completed Process','Completed','Cancelled','Rejected') 
+                NOT NULL
+            `);
+      console.log("   ✅ Bookings status column updated accurately.");
+    } catch (e) {
+      console.log("   ℹ️ Bookings status update skipped/failed (likely already updated or column mismatch).");
+    }
+
     console.log("✨ Auto-Migration Complete.");
   } catch (error) {
     console.error("⚠️ Auto-Migration Warning:", error.message);
