@@ -467,21 +467,10 @@ router.get("/user/:userId", async (req, res) => {
 
     const [bookings] = await conn.execute(`
       SELECT b.*, s.image AS staff_image,
-        rr.status AS reschedule_status,
-        rr.reason AS reschedule_reason
+        NULL AS reschedule_status,
+        NULL AS reschedule_reason
       FROM bookings b
       LEFT JOIN agents s ON b.agent_id = s.id
-      LEFT JOIN (
-        SELECT r1.booking_id, r1.status, r1.reason, r1.requested_at
-        FROM reschedule_requests r1
-        INNER JOIN (
-          SELECT booking_id, MAX(requested_at) AS max_requested_at
-          FROM reschedule_requests
-          GROUP BY booking_id
-        ) r2
-        ON r1.booking_id = r2.booking_id
-        AND r1.requested_at = r2.max_requested_at
-      ) rr ON b.id = rr.booking_id
       WHERE b.user_id = ?
       ORDER BY b.booking_date DESC, b.booking_time DESC
     `, [userId]);
