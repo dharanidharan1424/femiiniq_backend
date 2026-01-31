@@ -903,14 +903,20 @@ router.post("/cancel-booking-artist", async (req, res) => {
   let conn;
   try {
     conn = await pool.getConnection();
-    await conn.execute("UPDATE bookings SET booking_status = 'rejected', status = 'Rejected', cancel_reason = ? WHERE id = ?", [cancel_reason, booking_id]);
+    const [result] = await conn.execute("UPDATE bookings SET booking_status = 'rejected', status = 'Rejected', cancel_reason = ? WHERE id = ?", [cancel_reason, booking_id]);
 
+    if (result.affectedRows === 0) {
+      console.warn(`[BookingCancel] No booking updated for ID: ${booking_id}.`);
+      return res.status(404).json({ status: "error", message: "Booking not found or already processed" });
+    }
+
+    console.log(`[BookingCancel] Successfully rejected booking ID: ${booking_id}`);
     // Notify User
     // ...
     res.json({ status: "success", message: "Booking rejected" });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ status: "error" });
+    console.error("[BookingCancel] Error:", e);
+    res.status(500).json({ status: "error", message: "Internal server error" });
   } finally {
     if (conn) conn.release();
   }
