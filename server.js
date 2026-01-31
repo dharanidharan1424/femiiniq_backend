@@ -95,6 +95,7 @@ const availabilitySlotsRouter = require("./Partner/availability-slots.js");
 const getAvailableSlotsRouter = require("./api/get-available-slots.js");
 const partnerDeleteAccountRouter = require("./Partner/delete-account.js");
 const widgetLoginRouter = require("./Partner/Auth/WidgetLogin.js");
+const agentRoutesV2 = require("./src/modules/agent/agent.routes.js");
 
 app.use("/agent", getAgentsRouter);
 app.use("/partner/register", partnerRegisterRouter);
@@ -134,6 +135,7 @@ const workingHoursRouter = require("./Partner/working-hours.js");
 app.use("/partner/availability", workingHoursRouter);
 app.use("/partner/availability", availabilitySlotsRouter);
 app.use("/api/booking/available-slots", getAvailableSlotsRouter);
+app.use("/api/v2/agent", agentRoutesV2);
 
 // Partner account deletion
 app.use("/delete-agentProfile", partnerDeleteAccountRouter);
