@@ -3,15 +3,21 @@ const router = express.Router();
 const pool = require("../config/db.js");
 
 // Route to get all packages or filter by staff_id
+// Route to get all packages or filter by staff_id
 router.get("/", async (req, res) => {
   const { staff_id } = req.query;
   try {
-    let query = "SELECT *, image AS mobile_url, process_desc AS process, agent_name FROM service_package";
+    // start with base query
+    let query = `
+      SELECT id, agent_id, package_name, package_name as name, total_price, total_price as price, description, services, image, image AS mobile_url 
+      FROM agent_packages
+    `;
     const params = [];
 
     if (staff_id) {
-      query += " WHERE staff_id = ? OR agent_id = ?";
-      params.push(staff_id, staff_id);
+      // Assuming staff_id matches agent_id (e.g. FP000012)
+      query += " WHERE agent_id = ?";
+      params.push(staff_id);
     }
 
     const [rows] = await pool.query(query, params);
