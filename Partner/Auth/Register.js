@@ -41,7 +41,18 @@ router.post("/", async (req, res) => {
     );
 
     const agentId = result.insertId;
-    const uniqueId = `FP${String(agentId).padStart(6, "0")}`;
+
+    // Calculate next unique FP ID by checking BOTH active and deleted tables
+    const [agentsMax] = await pool.query("SELECT MAX(CAST(SUBSTRING(agent_id, 3) AS UNSIGNED)) as maxVal FROM agents WHERE agent_id LIKE 'FP%'");
+    let deletedMaxVal = 0;
+    try {
+      const [deletedMax] = await pool.query("SELECT MAX(CAST(SUBSTRING(agent_id, 3) AS UNSIGNED)) as maxVal FROM agent_deleted_accounts WHERE agent_id LIKE 'FP%'");
+      deletedMaxVal = deletedMax[0]?.maxVal || 0;
+    } catch (e) { /* ignore if table missing */ }
+
+    const currentMax = Math.max(agentsMax[0]?.maxVal || 0, deletedMaxVal);
+    const uniqueId = `FP${String(currentMax + 1).padStart(6, "0")}`;
+
 
     // Now update agent_id, password, and shop_id to match the auto-increment id
     await pool.query(

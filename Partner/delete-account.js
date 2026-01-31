@@ -42,6 +42,17 @@ router.delete("/", authenticateToken, async (req, res) => {
         // 3. Log deletion reason
         if (reason) {
             try {
+                // Ensure table exists
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS agent_deleted_accounts (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        agent_id VARCHAR(50),
+                        reason TEXT,
+                        extra_reason TEXT,
+                        deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                `);
+
                 await pool.query(
                     `INSERT INTO agent_deleted_accounts (agent_id, reason, extra_reason, deleted_at) VALUES (?, ?, ?, NOW())`,
                     [agent_id, reason, ""]
