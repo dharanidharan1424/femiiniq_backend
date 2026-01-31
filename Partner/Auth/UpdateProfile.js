@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
     image: agentProfile.imageUrl || agentProfile.image,
     about_desc: agentProfile.about_desc || agentProfile.about || agentProfile.description,
     status: agentProfile.status,
-    dob: agentProfile.dob,
+    dob: agentProfile.dob ? agentProfile.dob.split('T')[0] : agentProfile.dob,
     email: agentProfile.email,
     mobile: agentProfile.mobile,
     gender: agentProfile.gender,
