@@ -65,8 +65,9 @@ router.get("/slots/:agentId", async (req, res) => {
         let query = `
       SELECT 
         a.id, a.date, a.start_time, a.end_time, a.is_available,
-        b.total_capacity, b.booked_count,
-        (b.total_capacity - b.booked_count) as available_capacity
+        COALESCE(b.total_capacity, 1) as total_capacity, 
+        COALESCE(b.booked_count, 0) as booked_count,
+        COALESCE(b.total_capacity - b.booked_count, 1) as available_capacity
       FROM availability_slots a
       LEFT JOIN booking_slots b 
         ON a.agent_id = b.agent_id 
