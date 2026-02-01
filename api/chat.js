@@ -116,6 +116,20 @@ router.get("/list/agent/:agentId", async (req, res) => {
     const { agentId } = req.params;
 
     try {
+        // Find numeric agent ID if it's alphanumeric
+        let numericAgentId = agentId;
+        console.log(`[CHAT] Fetching list for agentId: ${agentId}`);
+
+        if (agentId && isNaN(parseInt(agentId)) && agentId.startsWith('FP')) {
+            const [agentRows] = await pool.execute("SELECT id FROM agents WHERE agent_id = ?", [agentId]);
+            if (agentRows.length > 0) {
+                numericAgentId = agentRows[0].id;
+                console.log(`[CHAT] Resolved ${agentId} to numeric ID: ${numericAgentId}`);
+            } else {
+                console.error(`[CHAT] Could not resolve ${agentId} to a numeric ID`);
+            }
+        }
+
         const [rows] = await pool.execute(`
       SELECT 
         c.id as chat_id, 
@@ -133,9 +147,20 @@ router.get("/list/agent/:agentId", async (req, res) => {
       )
       WHERE c.agent_id = ?
       ORDER BY last_timestamp DESC
-    `, [agentId]);
+    `, [numericAgentId]);
 
-        res.json({ status: "success", data: rows });
+        console.log(`[CHAT] Found ${rows.length} chats for agent ${numericAgentId}`);
+
+        res.json({
+            status: "success",
+            data: rows,
+            _debuginfo: { // Using a distinct key to ensure it's visible
+                received_agent_id: agentId,
+                resolved_numeric_id: numericAgentId,
+                chats_found: rows.length,
+                db_host: process.env.DB_HOST // Helpful for environment verification
+            }
+        });
     } catch (error) {
         console.error("Fetch agent chat list error:", error);
         res.status(500).json({ status: "error", message: error.message });
@@ -147,12 +172,15 @@ router.get("/messages/:chatId", async (req, res) => {
     const { chatId } = req.params;
 
     try {
+        const [chat] = await pool.execute("SELECT status FROM chats WHERE id = ?", [chatId]);
+        if (chat.length === 0) return res.status(404).json({ status: "error", message: "Chat not found" });
+
         const [rows] = await pool.execute(
             "SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC",
             [chatId]
         );
 
-        res.json({ status: "success", data: rows });
+        res.json({ status: "success", data: rows, chatStatus: chat[0].status });
     } catch (error) {
         console.error("Fetch messages error:", error);
         res.status(500).json({ status: "error", message: error.message });
@@ -161,13 +189,20 @@ router.get("/messages/:chatId", async (req, res) => {
 
 // --- Send a Message ---
 router.post("/message", async (req, res) => {
-    const { chat_id, sender_id, sender_type, message } = req.body;
+    let { chat_id, sender_id, sender_type, message } = req.body;
 
     if (!chat_id || !sender_id || !sender_type || !message) {
         return res.status(400).json({ status: "error", message: "Missing required fields" });
     }
 
     try {
+        // Resolve alphanumeric agent sender_id
+        if (sender_type === 'agent' && isNaN(parseInt(sender_id)) && typeof sender_id === 'string' && sender_id.startsWith('FP')) {
+            const [agentRows] = await pool.execute("SELECT id FROM agents WHERE agent_id = ?", [sender_id]);
+            if (agentRows.length > 0) {
+                sender_id = agentRows[0].id;
+            }
+        }
         // Check if chat is still active (not rejected)
         const [chat] = await pool.execute("SELECT status FROM chats WHERE id = ?", [chat_id]);
         if (chat.length === 0) return res.status(404).json({ status: "error", message: "Chat not found" });
