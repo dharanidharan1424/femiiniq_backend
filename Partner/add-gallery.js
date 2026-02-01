@@ -1,7 +1,7 @@
 // routes/partner/gallery.js
 const express = require("express");
 const router = express.Router();
-const pool = require("../config/dummyDb.js");
+const db = require("../config/db.js");
 
 router.post("/upload", async (req, res) => {
   const { agent_id, agent_name, image } = req.body;
@@ -9,15 +9,16 @@ router.post("/upload", async (req, res) => {
     return res.status(400).json({ status: "error", message: "Missing data" });
   }
   try {
-    await pool.query(
+    const [result] = await db.execute(
       "INSERT INTO agent_images (agent_id, agent_name, image, uploaded_at) VALUES (?, ?, ?, NOW())",
       [agent_id, agent_name, image]
     );
-    return res.json({ status: "success", message: "Image stored" });
+    return res.json({ status: "success", message: "Image stored", id: result.insertId });
   } catch (error) {
+    console.error("Gallery upload error:", error);
     return res
       .status(500)
-      .json({ status: "error", message: "DB insert failed" });
+      .json({ status: "error", message: "DB insert failed: " + error.message });
   }
 });
 
@@ -29,15 +30,16 @@ router.get("/list/:agentId", async (req, res) => {
       .json({ status: "error", message: "Missing agent ID" });
   }
   try {
-    const [rows] = await pool.query(
+    const [rows] = await db.execute(
       "SELECT id, agent_id, agent_name, image, uploaded_at FROM agent_images WHERE agent_id = ? ORDER BY uploaded_at DESC",
       [agentId]
     );
     return res.json({ status: "success", gallery: rows });
   } catch (error) {
+    console.error("Gallery list error:", error);
     return res
       .status(500)
-      .json({ status: "error", message: "DB query failed" });
+      .json({ status: "error", message: "DB query failed: " + error.message });
   }
 });
 
