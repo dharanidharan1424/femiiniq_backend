@@ -9,15 +9,15 @@ router.post("/", async (req, res) => {
     }
 
     try {
-        // 1. Fetch all non-cancelled bookings for this agent
+        // 1. Fetch only confirmed or completed bookings for this agent
         const [bookings] = await db.execute(
-            `SELECT * FROM bookings WHERE agent_id = ? AND status != 'Cancelled'`,
+            `SELECT * FROM bookings WHERE agent_id = ? AND status IN ('Completed', 'Confirmed')`,
             [agent_id]
         );
 
-        // Fetch recent transactions (last 5)
+        // Fetch recent transactions (last 5) - also filtered
         const [recentTransactions] = await db.execute(
-            `SELECT * FROM bookings WHERE agent_id = ? ORDER BY booking_date DESC LIMIT 5`,
+            `SELECT * FROM bookings WHERE agent_id = ? AND status IN ('Completed', 'Confirmed') ORDER BY booking_date DESC LIMIT 5`,
             [agent_id]
         );
 
