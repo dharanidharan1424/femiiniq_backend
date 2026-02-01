@@ -6,7 +6,7 @@ router.get("/", async (req, res) => {
   const { staff_id } = req.query;
   try {
     let query = `
-      SELECT id, category_id, service_name, service_name as name, price, duration, description, image, image as mobile_url 
+      SELECT id, agent_id, category_id, service_name, service_name as name, price, duration, description, image, image as mobile_url 
       FROM agent_services
     `;
     const params = [];

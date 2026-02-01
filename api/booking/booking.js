@@ -359,8 +359,8 @@ router.post("/", async (req, res) => {
     // Try to save notification (don't let this fail the booking)
     try {
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [user_id, notifMessage, notifType, 0, new Date()]
+        "INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+        [user_id, notifMessage, insertedId, 0, new Date()]
       );
       console.log("✅ Notification saved");
     } catch (notifError) {
@@ -580,8 +580,8 @@ router.post("/reschedule-request", async (req, res) => {
 
     if (userIdForNotif) {
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [userIdForNotif, notifMessage, notifType, 0, new Date()]
+        "INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+        [userIdForNotif, notifMessage, booking_id, 0, new Date()]
       );
     }
 
@@ -747,8 +747,8 @@ router.post("/cancel", async (req, res) => {
     // Insert notification in DB
     try {
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [booking.user_id, cancelMessage, "cancel", 0, new Date()]
+        "INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
+        [booking.user_id, cancelMessage, null, 0, new Date()]
       );
     } catch (notifErr) {
       console.error("Notification insert failed:", notifErr);
@@ -880,7 +880,7 @@ router.post("/confirm", async (req, res) => {
     if (rows.length > 0) {
       const b = rows[0];
       const msg = `✅ Booking Confirmed! Your OTP to start service is ${startOtp}. Share this with the artist when they arrive.`;
-      await conn.execute("INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, 'booking_confirmed', 0, NOW())", [b.user_id, msg]);
+      await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [b.user_id, msg, booking_id]);
       if (b.expo_push_token) {
         sendBookingPushNotification(b.expo_push_token, "Booking Confirmed ✅", msg);
       }
@@ -1016,7 +1016,7 @@ router.post("/verify-complete-otp", async (req, res) => {
     // Notify User
     const [userRows] = await conn.execute("SELECT user_id FROM bookings WHERE id = ?", [booking_id]);
     if (userRows.length > 0) {
-      await conn.execute("INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, 'booking_completed', 0, NOW())", [userRows[0].user_id, "✅ Service Completed! We hope you liked our service."]);
+      await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [userRows[0].user_id, "✅ Service Completed! We hope you liked our service.", booking_id]);
     }
 
     res.json({ status: "success", message: "Service Completed" });

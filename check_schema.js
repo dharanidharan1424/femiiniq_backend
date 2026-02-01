@@ -1,15 +1,18 @@
 const db = require("./config/dummyDb.js");
 
-async function checkSchema() {
+async function check() {
     try {
-        const [rows] = await db.query("DESCRIBE bookings");
-        const col = rows.find(r => r.Field === 'status');
-        console.log("status column definition:", col);
+        const [columns] = await db.query("SHOW COLUMNS FROM services");
+        console.log("Services Columns:", JSON.stringify(columns, null, 2));
+
+        const [sample] = await db.query("SELECT * FROM services LIMIT 2");
+        console.log("Sample Service Data:", JSON.stringify(sample, null, 2));
+
         process.exit(0);
-    } catch (error) {
-        console.error("Error describing table:", error);
+    } catch (e) {
+        console.error(e);
         process.exit(1);
     }
 }
 
-checkSchema();
+check();

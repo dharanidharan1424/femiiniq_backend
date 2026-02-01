@@ -2,8 +2,9 @@ const db = require("./config/dummyDb.js");
 
 async function check() {
     try {
-        const [tables] = await db.query("SHOW TABLES");
-        console.log("Tables:", JSON.stringify(tables, null, 2));
+        const [cols] = await db.query("SHOW COLUMNS FROM agent_services");
+        console.log("agent_services columns:", JSON.stringify(cols, null, 2));
+
         process.exit(0);
     } catch (e) {
         console.error(e);

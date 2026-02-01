@@ -114,8 +114,8 @@ router.post("/offers", async (req, res) => {
     // Insert notifications in DB for all users WITH type = 'offer'
     for (const user of users) {
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [user.id, body, "offer", 0, new Date()]
+        "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, ?, ?)",
+        [user.id, body, 0, new Date()]
       );
     }
 
@@ -161,10 +161,10 @@ router.post("/default-reminder", async (req, res) => {
         body = `Hi ${user.fullname}, please update your address for a better experience.`;
       }
 
-      // Now insert with type
+      // Now insert without type
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [user.id, body, "reminder", 0, new Date()]
+        "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, ?, ?)",
+        [user.id, body, 0, new Date()]
       );
 
       if (user.expo_push_token) {
@@ -239,10 +239,10 @@ router.post("/booking-reminder", async (req, res) => {
       const title = "Booking Reminder ⏰";
       const body = `Hi ${booking.fullname}, your appointment is on ${appointmentDateStr}. Please be prepared!`;
 
-      // Insert with type "booking_reminder"
+      // Insert without type
       await conn.execute(
-        "INSERT INTO notifications (user_id, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?)",
-        [booking.user_id, body, "reminder", 0, new Date()]
+        "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, ?, ?)",
+        [booking.user_id, body, 0, new Date()]
       );
 
       await sendBookingPushNotification(booking.expo_push_token, title, body, {
