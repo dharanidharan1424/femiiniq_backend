@@ -8,12 +8,15 @@ router.get("/", async (req, res) => {
   try {
     console.time("dbQuery");
     const [rows] = await pool.query(`
-      SELECT *, 
-      COALESCE(NULLIF(agent_id, ''), CONCAT('agent_', id)) AS agent_id,
-      COALESCE(NULLIF(full_name, ''), name) AS name,
-      COALESCE(NULLIF(address, ''), CONCAT_WS(', ', NULLIF(address_line1, ''), NULLIF(address_line2, ''), NULLIF(city, ''))) AS address
-      FROM agents
-      WHERE hide_profile = 'no'
+      SELECT a.*, 
+      COALESCE(NULLIF(a.agent_id, ''), CONCAT('agent_', a.id)) AS agent_id,
+      COALESCE(NULLIF(a.full_name, ''), a.name) AS name,
+      COALESCE(NULLIF(a.address, ''), CONCAT_WS(', ', NULLIF(a.address_line1, ''), NULLIF(a.address_line2, ''), NULLIF(a.city, ''))) AS address,
+      GROUP_CONCAT(ac.category_id) as service_ids
+      FROM agents a
+      LEFT JOIN agent_categories ac ON a.agent_id = ac.agent_id
+      WHERE a.hide_profile = 'no'
+      GROUP BY a.id
     `);
     console.timeEnd("dbQuery");
     console.log(`Fetched ${rows.length} staffs.`);

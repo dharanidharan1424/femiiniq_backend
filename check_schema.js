@@ -1,18 +1,14 @@
-const db = require("./config/dummyDb.js");
+const pool = require('./config/db');
 
-async function check() {
+async function checkSchema() {
     try {
-        const [columns] = await db.query("SHOW COLUMNS FROM services");
-        console.log("Services Columns:", JSON.stringify(columns, null, 2));
-
-        const [sample] = await db.query("SELECT * FROM services LIMIT 2");
-        console.log("Sample Service Data:", JSON.stringify(sample, null, 2));
-
+        const [rows] = await pool.query("DESCRIBE agent_categories");
+        console.log("agent_categories schema:", rows);
         process.exit(0);
-    } catch (e) {
-        console.error(e);
+    } catch (error) {
+        console.error(error);
         process.exit(1);
     }
 }
 
-check();
+checkSchema();
