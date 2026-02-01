@@ -41,6 +41,7 @@ const NotificationRouter = require("./api/send-notification.js");
 const reportsRouter = require("./api/report-user.js");
 const bankDetailsRouter = require("./api/account-details.js");
 const BookingCouponRouter = require("./api/booking/coupon.js");
+const ChatRouter = require("./api/chat.js");
 
 // Mount routers with prefixes
 app.use("/api", apiRouter);
@@ -59,6 +60,7 @@ app.use("/notification", NotificationRouter);
 app.use("/report", reportsRouter);
 app.use("/bank", bankDetailsRouter);
 app.use("/coupon", BookingCouponRouter);
+app.use("/chat", ChatRouter);
 const autoRegisterRouter = require("./api/Auth/AutoRegister.js");
 app.use("/api/auth/auto-register", autoRegisterRouter);
 
