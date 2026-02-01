@@ -149,6 +149,7 @@ router.get("/staff/:id", async (req, res) => {
     const sql = `
       SELECT 
         r.id, r.user_id AS reviewer_id, r.rating, r.review AS comment, 0 AS likes, r.created_at,
+        UNIX_TIMESTAMP(r.created_at) * 1000 AS created_at_ts,
         u.fullname AS reviewer_name, u.image AS reviewer_image
       FROM reviews r
       JOIN users u ON r.user_id = u.id
@@ -173,6 +174,7 @@ router.get("/user/:id", async (req, res) => {
     const sql = `
       SELECT 
         r.id, r.user_id AS reviewer_id, s.id AS reviewee_id, r.rating, r.review AS comment, 0 AS likes, r.created_at,
+        UNIX_TIMESTAMP(r.created_at) * 1000 AS created_at_ts,
         s.full_name AS agent_name, s.name AS staff_name, s.image AS staff_image
       FROM reviews r
       JOIN agents s ON r.agent_id = s.agent_id
