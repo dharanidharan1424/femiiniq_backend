@@ -25,7 +25,7 @@ router.patch("/status", async (req, res) => {
 
     // In User App, 'status' column is used for tab filtering (Upcoming, Completed, Cancelled)
     // 'booking_status' is used for internal workflow state (pending, confirmed, rejected, etc.)
-    const userStatus = new_status === "rejected" ? "Rejected" : "Confirmed";
+    const userStatus = new_status === "rejected" ? "Rejected" : "Upcoming";
 
     if (new_status === "rejected" && reject_reason) {
       const fullRejectReason = reject_reason?.trim()

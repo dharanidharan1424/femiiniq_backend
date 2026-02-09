@@ -1,0 +1,30 @@
+[
+  {
+    "CONSTRAINT_CATALOG": "def",
+    "CONSTRAINT_SCHEMA": "railway",
+    "CONSTRAINT_NAME": "order_id",
+    "TABLE_CATALOG": "def",
+    "TABLE_SCHEMA": "railway",
+    "TABLE_NAME": "bookings",
+    "COLUMN_NAME": "order_id",
+    "ORDINAL_POSITION": 1,
+    "POSITION_IN_UNIQUE_CONSTRAINT": null,
+    "REFERENCED_TABLE_SCHEMA": null,
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  },
+  {
+    "CONSTRAINT_CATALOG": "def",
+    "CONSTRAINT_SCHEMA": "railway",
+    "CONSTRAINT_NAME": "PRIMARY",
+    "TABLE_CATALOG": "def",
+    "TABLE_SCHEMA": "railway",
+    "TABLE_NAME": "bookings",
+    "COLUMN_NAME": "id",
+    "ORDINAL_POSITION": 1,
+    "POSITION_IN_UNIQUE_CONSTRAINT": null,
+    "REFERENCED_TABLE_SCHEMA": null,
+    "REFERENCED_TABLE_NAME": null,
+    "REFERENCED_COLUMN_NAME": null
+  }
+]

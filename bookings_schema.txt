@@ -1,0 +1,45 @@
+Field | Type | Collation
+---|---|---
+id | int | null
+order_id | varchar(50) | utf8mb4_unicode_ci
+payment_id | varchar(255) | utf8mb4_unicode_ci
+user_id | int | null
+agent_id | varchar(50) | utf8mb4_unicode_ci
+agent_name | varchar(150) | utf8mb4_unicode_ci
+booking_date | date | null
+booking_time | varchar(11) | utf8mb4_unicode_ci
+staffname | varchar(255) | utf8mb4_unicode_ci
+address | mediumtext | utf8mb4_unicode_ci
+location | enum('At My Location','Provider''s Location') | utf8mb4_unicode_ci
+services | text | utf8mb4_unicode_ci
+category_id | int | null
+service_id | int | null
+image | varchar(255) | utf8mb4_unicode_ci
+created_at | timestamp | null
+status | enum('Upcoming','Started','Completed Process','Completed','Cancelled','Rejected') | utf8mb4_unicode_ci
+updated_at | datetime | null
+paid_at | datetime | null
+note | mediumtext | utf8mb4_unicode_ci
+cancel_reason | mediumtext | utf8mb4_unicode_ci
+reschedule_date | datetime | null
+reschedule_reason | mediumtext | utf8mb4_unicode_ci
+reschedule_status | enum('Pending','Accepted','Rejected') | utf8mb4_unicode_ci
+discountprice | decimal(10,2) | null
+coupon_discount | decimal(10,2) | null
+platformfee | decimal(10,2) | null
+totalprice | decimal(10,2) | null
+finalprice | decimal(10,2) | null
+payment_method | varchar(50) | utf8mb4_unicode_ci
+payment_type | varchar(50) | utf8mb4_unicode_ci
+amount | decimal(10,2) | null
+personal_note | mediumtext | utf8mb4_unicode_ci
+booking_status | enum('pending','confirmed','rejected','started','completed_process','completed','cancelled') | utf8mb4_unicode_ci
+couponcode | varchar(100) | utf8mb4_unicode_ci
+artist_platform_fee | decimal(10,2) | null
+start_otp | varchar(10) | utf8mb4_unicode_ci
+complete_otp | varchar(10) | utf8mb4_unicode_ci
+is_started | tinyint(1) | null
+is_completed | tinyint(1) | null
+remaining_amount | decimal(10,2) | null
+payment_status | enum('unpaid','partial','paid') | utf8mb4_unicode_ci
+paid_amount | decimal(10,2) | null
