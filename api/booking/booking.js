@@ -799,7 +799,7 @@ router.post("/confirm", async (req, res) => {
     }
 
     await conn.execute(
-      `UPDATE bookings SET booking_status = 'confirmed', start_otp = ?, complete_otp = ? WHERE id = ?`,
+      `UPDATE bookings SET booking_status = 'confirmed', status = 'Upcoming', start_otp = ?, complete_otp = ? WHERE id = ?`,
       [startOtp, completeOtp, booking_id]
     );
 
