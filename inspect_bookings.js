@@ -2,11 +2,15 @@ const db = require('./config/db');
 const fs = require('fs');
 const path = require('path');
 
-async function inspectConstraints() {
+async function inspectNotifications() {
     try {
-        const [rows] = await db.execute("SELECT * FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'bookings' AND TABLE_SCHEMA = '" + process.env.DB_NAME + "'");
-        fs.writeFileSync(path.join(__dirname, 'constraints_schema.txt'), JSON.stringify(rows, null, 2));
-        console.log("Constraints written to constraints_schema.txt");
+        const [rows] = await db.execute("SHOW FULL COLUMNS FROM notifications");
+        let output = "Field | Type | Collation\n---|---|---\n";
+        rows.forEach(r => {
+            output += `${r.Field} | ${r.Type} | ${r.Collation}\n`;
+        });
+        fs.writeFileSync(path.join(__dirname, 'notifications_schema.txt'), output);
+        console.log("Schema written to notifications_schema.txt");
         process.exit(0);
     } catch (error) {
         console.error(error);
@@ -14,4 +18,4 @@ async function inspectConstraints() {
     }
 }
 
-inspectConstraints();
+inspectNotifications();

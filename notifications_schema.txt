@@ -1,0 +1,8 @@
+Field | Type | Collation
+---|---|---
+id | int | null
+user_id | int | null
+message | text | latin1_swedish_ci
+is_read | tinyint(1) | null
+created_at | datetime | null
+booking_id | int | null

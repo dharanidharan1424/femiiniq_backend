@@ -879,10 +879,18 @@ router.post("/confirm", async (req, res) => {
     const [rows] = await conn.execute("SELECT user_id, booking_date, booking_time, expo_push_token FROM bookings JOIN users ON bookings.user_id = users.id WHERE bookings.id = ?", [booking_id]);
     if (rows.length > 0) {
       const b = rows[0];
-      const msg = `✅ Booking Confirmed! Your OTP to start service is ${startOtp}. Share this with the artist when they arrive.`;
+      const msg = `Booking Confirmed! Your OTP to start service is ${startOtp}. Share this with the artist when they arrive.`;
       await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [b.user_id, msg, booking_id]);
       if (b.expo_push_token) {
-        sendBookingPushNotification(b.expo_push_token, "Booking Confirmed ✅", msg);
+        sendBookingPushNotification(b.expo_push_token, "Booking Confirmed", msg);
+      }
+
+      // ... later in the file ...
+
+      // Notify User
+      const [userRows] = await conn.execute("SELECT user_id FROM bookings WHERE id = ?", [booking_id]);
+      if (userRows.length > 0) {
+        await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [userRows[0].user_id, "Service Completed! We hope you liked our service.", booking_id]);
       }
     }
 
@@ -1016,7 +1024,7 @@ router.post("/verify-complete-otp", async (req, res) => {
     // Notify User
     const [userRows] = await conn.execute("SELECT user_id FROM bookings WHERE id = ?", [booking_id]);
     if (userRows.length > 0) {
-      await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [userRows[0].user_id, "✅ Service Completed! We hope you liked our service.", booking_id]);
+      await conn.execute("INSERT INTO notifications (user_id, message, booking_id, is_read, created_at) VALUES (?, ?, ?, 0, NOW())", [userRows[0].user_id, "Service Completed! We hope you liked our service.", booking_id]);
     }
 
     res.json({ status: "success", message: "Service Completed" });
