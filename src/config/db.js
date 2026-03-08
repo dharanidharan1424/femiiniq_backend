@@ -28,8 +28,8 @@ const RETRYABLE_ERRORS = [
     "ER_SERVER_SHUTDOWN",
 ];
 
-// Exponential backoff delays: 500ms, 1.5s, 3s
-const RETRY_DELAYS = [500, 1500, 3000];
+// Longer delays so a sleeping free-tier DB server has time to wake up
+const RETRY_DELAYS = [2000, 6000, 12000];
 
 let pool = mysql.createPool(DB_CONFIG);
 
@@ -63,5 +63,27 @@ const resilientPool = {
     getConnection: () => pool.getConnection(),
     end: () => pool.end(),
 };
+
+// Startup warmup: silently retry until DB is reachable (non-blocking)
+// Prevents the first user request from bearing the full cold-start cost
+async function warmupConnection() {
+    const maxWait = 60000; // Try for up to 60 seconds
+    const interval = 3000;
+    const start = Date.now();
+    while (Date.now() - start < maxWait) {
+        try {
+            const conn = await pool.getConnection();
+            conn.release();
+            console.log("[DB] Warmup: Database connection established.");
+            return;
+        } catch (err) {
+            console.warn(`[DB] Warmup: DB not ready yet (${err.code}), retrying in ${interval / 1000}s...`);
+            await new Promise(r => setTimeout(r, interval));
+            await recreatePool();
+        }
+    }
+    console.error("[DB] Warmup: Could not connect to DB after 60s. Queries will retry on demand.");
+}
+warmupConnection();
 
 module.exports = resilientPool;
