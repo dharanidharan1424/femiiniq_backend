@@ -2,54 +2,84 @@ const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 const path = require("path");
 
-// Load env from root
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 const DB_CONFIG = {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: parseInt(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 30000,
     connectTimeout: 30000,
     charset: "utf8mb4",
 };
 
-const RETRYABLE_ERRORS = [
-    "PROTOCOL_CONNECTION_LOST",
-    "ECONNRESET",
-    "ETIMEDOUT",
-    "ECONNREFUSED",
-    "ER_SERVER_SHUTDOWN",
-];
+// Railway's external proxy kills idle pool connections.
+// Solution: single persistent connection with auto-reconnect on every query.
 
-// Longer delays so a sleeping free-tier DB server has time to wake up
-const RETRY_DELAYS = [2000, 6000, 12000];
+let connection = null;
+let isConnecting = false;
 
-let pool = mysql.createPool(DB_CONFIG);
+async function connect() {
+    // Prevent multiple simultaneous connect attempts
+    if (isConnecting) {
+        await new Promise(r => setTimeout(r, 300));
+        return connect();
+    }
 
-async function recreatePool() {
-    console.warn("[DB] Recreating connection pool...");
-    try { await pool.end(); } catch (_) { /* ignore errors on broken pool teardown */ }
-    pool = mysql.createPool(DB_CONFIG);
-    console.log("[DB] Connection pool recreated.");
+    isConnecting = true;
+    const delays = [1000, 3000, 6000, 10000];
+
+    for (let i = 0; i <= delays.length; i++) {
+        try {
+            console.log(`[DB] Connecting... (attempt ${i + 1})`);
+            const conn = await mysql.createConnection(DB_CONFIG);
+
+            conn.on("error", (err) => {
+                console.warn("[DB] Connection dropped:", err.code);
+                connection = null;
+            });
+
+            console.log("[DB] Connected to Railway MySQL.");
+            isConnecting = false;
+            return conn;
+        } catch (err) {
+            if (i < delays.length) {
+                console.warn(`[DB] Failed (${err.code}), retrying in ${delays[i] / 1000}s...`);
+                await new Promise(r => setTimeout(r, delays[i]));
+            } else {
+                isConnecting = false;
+                throw err;
+            }
+        }
+    }
 }
 
-async function queryWithRetry(fn) {
-    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+async function getConn() {
+    if (connection) {
         try {
-            return await fn();
+            await connection.ping();
+            return connection;
+        } catch (_) {
+            console.warn("[DB] Ping failed, reconnecting...");
+            connection = null;
+        }
+    }
+    connection = await connect();
+    return connection;
+}
+
+const RETRYABLE = ["PROTOCOL_CONNECTION_LOST", "ECONNRESET", "ETIMEDOUT", "ECONNREFUSED"];
+
+async function run(fn) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const conn = await getConn();
+            return await fn(conn);
         } catch (err) {
-            if (RETRYABLE_ERRORS.includes(err.code) && attempt < RETRY_DELAYS.length) {
-                const delay = RETRY_DELAYS[attempt];
-                console.warn(`[DB] Connection error (${err.code}), retrying in ${delay}ms... (attempt ${attempt + 1}/${RETRY_DELAYS.length})`);
-                await new Promise(r => setTimeout(r, delay));
-                await recreatePool();
+            if (RETRYABLE.includes(err.code) && attempt === 0) {
+                console.warn(`[DB] Query error (${err.code}), reconnecting and retrying...`);
+                connection = null;
             } else {
                 throw err;
             }
@@ -57,33 +87,15 @@ async function queryWithRetry(fn) {
     }
 }
 
-const resilientPool = {
-    query: (...args) => queryWithRetry(() => pool.query(...args)),
-    execute: (...args) => queryWithRetry(() => pool.execute(...args)),
-    getConnection: () => pool.getConnection(),
-    end: () => pool.end(),
+const db = {
+    query: (sql, values) => run(conn => conn.query(sql, values)),
+    execute: (sql, values) => run(conn => conn.execute(sql, values)),
+    getConnection: getConn,
 };
 
-// Startup warmup: silently retry until DB is reachable (non-blocking)
-// Prevents the first user request from bearing the full cold-start cost
-async function warmupConnection() {
-    const maxWait = 60000; // Try for up to 60 seconds
-    const interval = 3000;
-    const start = Date.now();
-    while (Date.now() - start < maxWait) {
-        try {
-            const conn = await pool.getConnection();
-            conn.release();
-            console.log("[DB] Warmup: Database connection established.");
-            return;
-        } catch (err) {
-            console.warn(`[DB] Warmup: DB not ready yet (${err.code}), retrying in ${interval / 1000}s...`);
-            await new Promise(r => setTimeout(r, interval));
-            await recreatePool();
-        }
-    }
-    console.error("[DB] Warmup: Could not connect to DB after 60s. Queries will retry on demand.");
-}
-warmupConnection();
+// Warm up connection at startup
+getConn()
+    .then(() => console.log("[DB] Warmup complete."))
+    .catch(err => console.warn("[DB] Warmup failed, will retry on first query:", err.message));
 
-module.exports = resilientPool;
+module.exports = db;
