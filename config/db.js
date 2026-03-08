@@ -2,61 +2,75 @@ const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
 dotenv.config();
 
-
-const pool = mysql.createPool({
+const DB_CONFIG = {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
-
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
-
   waitForConnections: true,
-  connectionLimit: 5,
+  connectionLimit: 10,
   queueLimit: 0,
-
   enableKeepAlive: true,
-  keepAliveInitialDelay: 10000,
-
+  keepAliveInitialDelay: 30000,
+  connectTimeout: 30000,
   charset: "utf8mb4",
-});
+};
 
+const RETRYABLE_ERRORS = [
+  "PROTOCOL_CONNECTION_LOST",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "ER_SERVER_SHUTDOWN",
+];
 
+// Exponential backoff delays for retries
+const RETRY_DELAYS = [500, 1500, 3000];
 
+let pool = mysql.createPool(DB_CONFIG);
 
-// Wrapper to retry queries on connection loss
-const originalQuery = pool.query.bind(pool);
+async function recreatePool() {
+  console.warn("[DB] Recreating connection pool...");
+  try { await pool.end(); } catch (_) { /* ignore errors on broken pool teardown */ }
+  pool = mysql.createPool(DB_CONFIG);
+  console.log("[DB] Connection pool recreated.");
+}
 
-pool.query = async function (...args) {
-  let retries = 3;
-  while (retries > 0) {
+async function queryWithRetry(fn) {
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     try {
-      return await originalQuery(...args);
-    } catch (error) {
-      if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNRESET') {
-        console.warn(`⚠️ Connection lost, retrying query... (Attempts left: ${retries - 1})`);
-        retries--;
-        if (retries === 0) throw error;
-        // Wait 200ms to allow connection reset
-        await new Promise(res => setTimeout(res, 200));
+      return await fn();
+    } catch (err) {
+      if (RETRYABLE_ERRORS.includes(err.code) && attempt < RETRY_DELAYS.length) {
+        const delay = RETRY_DELAYS[attempt];
+        console.warn(`⚠️ DB connection error (${err.code}), retrying in ${delay}ms... (attempt ${attempt + 1}/${RETRY_DELAYS.length})`);
+        await new Promise(r => setTimeout(r, delay));
+        await recreatePool();
       } else {
-        throw error;
+        throw err;
       }
     }
   }
-};
-
-// ✅ Function to check if the database is live
-async function checkDatabaseConnection() {
-  try {
-    const connection = await pool.getConnection();
-    console.log("✅ Database connection successful!");
-    connection.release(); // release back to pool
-  } catch (error) {
-    console.error("❌ Database connection failed:", error.message);
-  }
 }
 
-checkDatabaseConnection();
+const resilientPool = {
+  query: (...args) => queryWithRetry(() => pool.query(...args)),
+  execute: (...args) => queryWithRetry(() => pool.execute(...args)),
+  getConnection: () => pool.getConnection(),
+  end: () => pool.end(),
+};
 
-module.exports = pool;
+// Verify connection on startup (non-fatal)
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log("✅ Database connection successful!");
+    conn.release();
+  } catch (err) {
+    console.warn("⚠️ Initial DB connection check failed (will retry on first query):", err.message);
+  }
+})();
+
+module.exports = resilientPool;
+

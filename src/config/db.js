@@ -28,53 +28,40 @@ const RETRYABLE_ERRORS = [
     "ER_SERVER_SHUTDOWN",
 ];
 
+// Exponential backoff delays: 500ms, 1.5s, 3s
+const RETRY_DELAYS = [500, 1500, 3000];
+
 let pool = mysql.createPool(DB_CONFIG);
 
-// Recreates the pool — called when the entire pool is broken (all connections dead)
 async function recreatePool() {
     console.warn("[DB] Recreating connection pool...");
-    try {
-        await pool.end(); // Drain and close all existing connections
-    } catch (_) {
-        // Ignore errors during teardown of a broken pool
-    }
+    try { await pool.end(); } catch (_) { /* ignore errors on broken pool teardown */ }
     pool = mysql.createPool(DB_CONFIG);
     console.log("[DB] Connection pool recreated.");
 }
 
+async function queryWithRetry(fn) {
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            if (RETRYABLE_ERRORS.includes(err.code) && attempt < RETRY_DELAYS.length) {
+                const delay = RETRY_DELAYS[attempt];
+                console.warn(`[DB] Connection error (${err.code}), retrying in ${delay}ms... (attempt ${attempt + 1}/${RETRY_DELAYS.length})`);
+                await new Promise(r => setTimeout(r, delay));
+                await recreatePool();
+            } else {
+                throw err;
+            }
+        }
+    }
+}
+
 const resilientPool = {
-    async query(sql, values) {
-        try {
-            return await pool.query(sql, values);
-        } catch (err) {
-            if (RETRYABLE_ERRORS.includes(err.code)) {
-                console.warn(`[DB] Connection error (${err.code}), recreating pool and retrying...`);
-                await recreatePool();
-                // Retry once after fresh pool
-                return await pool.query(sql, values);
-            }
-            throw err;
-        }
-    },
-    async execute(sql, values) {
-        try {
-            return await pool.execute(sql, values);
-        } catch (err) {
-            if (RETRYABLE_ERRORS.includes(err.code)) {
-                console.warn(`[DB] Connection error (${err.code}), recreating pool and retrying...`);
-                await recreatePool();
-                return await pool.execute(sql, values);
-            }
-            throw err;
-        }
-    },
-    // Returns a connection from the current pool (for transactions)
-    getConnection() {
-        return pool.getConnection();
-    },
-    end() {
-        return pool.end();
-    },
+    query: (...args) => queryWithRetry(() => pool.query(...args)),
+    execute: (...args) => queryWithRetry(() => pool.execute(...args)),
+    getConnection: () => pool.getConnection(),
+    end: () => pool.end(),
 };
 
 module.exports = resilientPool;
