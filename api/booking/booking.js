@@ -139,9 +139,8 @@ router.post("/", async (req, res) => {
     }
   } catch (err) {
     console.error("Error checking active bookings:", err);
-    // Fail safe to be strict
-    return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility" });
-    return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility" });
+    // Return exact error message to client for debugging
+    return res.status(500).json({ status: "error", message: "Internal server error checking booking eligibility: " + err.message });
   }
   // ---------------------------------------------------------
 
