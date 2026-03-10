@@ -63,6 +63,10 @@ async function getConn() {
     }
   }
   connection = await connect();
+
+  // Provide a dummy release() method so pool-style code doesn't crash 
+  connection.release = () => { };
+
   return connection;
 }
 
